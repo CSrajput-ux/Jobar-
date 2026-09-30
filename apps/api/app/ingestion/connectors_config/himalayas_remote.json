@@ -1,0 +1,21 @@
+{
+  "source_id": "himalayas",
+  "name": "Himalayas Remote Community Feed",
+  "source_type": "feed",
+  "legal_status": "public_feed",
+  "countries": ["GLOBAL"],
+  "rate_limit_per_minute": 60,
+  "refresh_interval_hours": 6,
+  "description": "Curated remote tech listings ingested via declarative JSON config.",
+  "endpoint_url": "https://himalayas.app/jobs/api?limit=25",
+  "root_list_path": "jobs",
+  "field_mappings": {
+    "id": "id",
+    "title": "title",
+    "company": "company_name",
+    "location": "location",
+    "description": "excerpt",
+    "apply_url": "application_url",
+    "salary": "salary"
+  }
+}

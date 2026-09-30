@@ -1,0 +1,35 @@
+{
+  "manifest_version": 3,
+  "name": "JobPilot — 1-Click Job Clipper",
+  "version": "1.0.0",
+  "description": "Clip jobs directly from LinkedIn, Indeed, and Glassdoor into your JobPilot autonomous pipeline.",
+  "permissions": [
+    "activeTab",
+    "storage",
+    "scripting"
+  ],
+  "host_permissions": [
+    "https://*.linkedin.com/*",
+    "https://*.indeed.com/*",
+    "https://*.glassdoor.com/*",
+    "http://localhost:8000/*",
+    "http://localhost:3000/*"
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Clip Job to JobPilot"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://*.linkedin.com/jobs/*",
+        "https://*.indeed.com/viewjob*",
+        "https://*.glassdoor.com/job-listing/*"
+      ],
+      "js": ["content.js"]
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "name": "@jobpilot/db",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "db:up": "docker compose -f ../../docker/docker-compose.yml up -d postgres redis minio",
+    "db:down": "docker compose -f ../../docker/docker-compose.yml down",
+    "db:schema": "psql -h localhost -U jobpilot -d jobpilot_db -f ./schema.sql",
+    "db:seed": "psql -h localhost -U jobpilot -d jobpilot_db -f ./seed.sql"
+  }
+}

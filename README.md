@@ -1,165 +1,917 @@
-# JobPilot 🚀
-### Autonomous AI-Powered Job Search, Application & Outreach Platform
+# 🚀 JobPilot
 
-[![Next.js 14](https://img.shields.io/badge/Next.js-14%20App%20Router-black?style=flat&logo=next.js)](https://nextjs.org/)
-[![FastAPI](https://img.shields.io/badge/FastAPI-Python%203.11-009688?style=flat&logo=fastapi)](https://fastapi.tiangolo.com/)
-[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16%20%2B%20pgvector-336791?style=flat&logo=postgresql)](https://github.com/pgvector/pgvector)
-[![Claude 3.5](https://img.shields.io/badge/Claude%203.5-Sonnet-7C3AED?style=flat)](https://www.anthropic.com/)
-[![Playwright](https://img.shields.io/badge/Playwright-Stealth%20Automated-2EAD33?style=flat&logo=playwright)](https://playwright.dev/)
+### AI-Powered Job Search, Matching, Application & Outreach Platform
 
-JobPilot is an enterprise-grade platform that automates the entire candidate search lifecycle: discovering global jobs across company career pages, tailoring resumes with a strict **Zero-Fabrication Guarantee**, applying via Playwright browser automation with screenshot proof, cold-emailing recruiters via authentic user Gmail API mailboxes, reading and classifying incoming recruiter replies, and scheduling interviews on Google Calendar.
+**JobPilot** is an AI-assisted job search automation platform designed to turn the traditional job hunt into a structured, intelligent workflow.
 
----
+Instead of manually searching hundreds of job boards, comparing job descriptions, tailoring resumes, tracking applications, checking recruiter emails, and coordinating interviews, JobPilot brings these workflows together into a single system.
 
-## 🏗️ System Architecture
-
-```
-                          [ Chrome Extension (Manifest V3) ]
-                                          │ (1-Click Clip)
-                                          ▼
-    [ Next.js 14 Web App ] <───> [ Next.js API Routes (BFF) ]
-       (Tailwind / shadcn)                     │
-                                               ▼
-                                  [ FastAPI Core Backend ] ───> [ Claude 3.5 Sonnet ]
-                                      │            │
-                        ┌─────────────┘            └─────────────┐
-                        ▼                                        ▼
-            [ PostgreSQL 16 + pgvector ]                 [ Redis 7.2 Broker ]
-            (Multi-tenant, AES-256 tokens)                       │
-                                                                 ▼
-                                                        [ Celery Worker Cluster ]
-                                                        ├─ Ingestion (Greenhouse/Lever)
-                                                        ├─ Playwright Stealth Runner
-                                                        ├─ Gmail Sync & PubSub
-                                                        └─ Hunter.io & GCal Dispatch
-```
+> **Discover → Match → Tailor → Approve → Apply → Track → Engage**
 
 ---
 
-## 📦 Monorepo Directory Structure
+## ✨ What is JobPilot?
 
+Job hunting is fragmented across job boards, ATS platforms, email, calendars, spreadsheets, and personal notes.
+
+JobPilot attempts to unify that workflow by combining:
+
+- 🔎 Multi-source job discovery
+- 🧠 AI-powered job-to-profile matching
+- 📄 Job-specific resume tailoring
+- ✉️ Personalized recruiter outreach
+- 📬 Recruiter inbox intelligence
+- 📅 Interview scheduling assistance
+- ✅ Application pipeline management
+- 🌐 Browser-based job clipping
+- 🔐 Google Workspace integration
+- ⚙️ Background workers for automation
+- 🛡️ Sending policies, audit trails and safety controls
+
+The goal is not simply to find jobs, but to build an **end-to-end job search operating system**.
+
+---
+
+# 🎯 Core Workflow
+
+```text
+                     ┌─────────────────────┐
+                     │   Candidate Profile  │
+                     └──────────┬──────────┘
+                                │
+                                ▼
+                     ┌─────────────────────┐
+                     │   Job Discovery     │
+                     │ Greenhouse / Lever  │
+                     │ Remotive / Others   │
+                     └──────────┬──────────┘
+                                │
+                                ▼
+                     ┌─────────────────────┐
+                     │    AI Matching      │
+                     │   Fit Score 0–100   │
+                     └──────────┬──────────┘
+                                │
+                                ▼
+                ┌───────────────────────────────┐
+                │ Resume & Cover Letter Tailor  │
+                └──────────────┬────────────────┘
+                               │
+                               ▼
+                     ┌─────────────────────┐
+                     │ Application Queue   │
+                     │ Save / Approve /    │
+                     │ Apply / Track       │
+                     └──────────┬──────────┘
+                                │
+                                ▼
+                  ┌─────────────────────────┐
+                  │ Recruiter Outreach      │
+                  │ Cold Email / Follow-up  │
+                  └────────────┬────────────┘
+                               │
+                               ▼
+                     ┌─────────────────────┐
+                     │ Gmail Intelligence  │
+                     │ Classify / Reply     │
+                     └──────────┬──────────┘
+                                │
+                                ▼
+                     ┌─────────────────────┐
+                     │ Interview Calendar  │
+                     │ Scheduling / Meet   │
+                     └─────────────────────┘
 ```
-jobpilot/
+
+---
+
+# 🌟 Key Features
+
+## 🔎 Intelligent Job Discovery
+
+JobPilot provides a connector-based ingestion architecture for discovering jobs from multiple sources.
+
+Current connector architecture includes:
+
+- Greenhouse
+- Lever
+- Ashby
+- Adzuna
+- Remotive
+- Config-driven sources
+- User-submitted company/career URLs
+- ATS detection
+- Company discovery
+
+The ingestion pipeline includes normalization and deduplication so different sources can be converted into a consistent internal job representation.
+
+### Example sources
+
+```text
+Greenhouse
+Lever
+Ashby
+Remotive
+Adzuna
+Company Career Pages
+Browser Extension
+```
+
+---
+
+# 🧠 AI Job Matching
+
+JobPilot evaluates a candidate profile against a job description and generates a structured match analysis.
+
+The matching engine can produce:
+
+```json
+{
+  "score": 93,
+  "matchedSkills": [
+    "PostgreSQL",
+    "Python",
+    "Redis"
+  ],
+  "missingSkills": [
+    "Go"
+  ],
+  "redFlags": [],
+  "fitSummary": "Strong alignment with the backend requirements.",
+  "seniorityAlignment": "ideal"
+}
+```
+
+### Matching signals include
+
+- Technical skills
+- Frameworks
+- Tools
+- Job description requirements
+- Seniority
+- Missing skills
+- Potential red flags
+- Overall fit score
+
+The AI layer can also fall back to deterministic skill-overlap logic when an external AI model is unavailable.
+
+---
+
+# 📄 AI Resume Tailoring
+
+JobPilot can generate job-specific resume variants while attempting to preserve the candidate's original experience.
+
+The tailoring workflow is designed around a **zero-fabrication principle**:
+
+> Optimize how existing experience is presented rather than inventing new experience.
+
+The system can generate:
+
+- Tailored experience bullets
+- Skill-focused wording
+- Job-specific summary
+- Cover letter
+- Original vs. tailored bullet differences
+
+Example:
+
+```text
+Original:
+Built FastAPI microservices.
+
+Tailored:
+Built high-throughput Python/FastAPI microservices.
+```
+
+This allows the candidate to understand exactly how their resume was adapted.
+
+---
+
+# ✅ Application Management
+
+Applications can be organized into a structured pipeline.
+
+Example statuses include:
+
+```text
+SAVED
+QUEUED_FOR_APPROVAL
+APPLIED
+INTERVIEW
+REJECTED
+```
+
+The frontend includes an application Kanban interface for managing this pipeline.
+
+Each application can contain:
+
+- Job information
+- Application status
+- Notes
+- Applied timestamp
+- Failure reason
+- Submission metadata
+- Proof/reference information
+
+---
+
+# ✉️ Recruiter Outreach
+
+JobPilot includes an AI-powered outreach layer for creating personalized recruiter communication.
+
+The system can generate different outreach styles such as:
+
+- Professional
+- Casual / warm
+- Metrics-driven
+
+Example workflow:
+
+```text
+Job Found
+   ↓
+Recruiter Identified
+   ↓
+AI Generates Personalized Email
+   ↓
+Policy Validation
+   ↓
+Draft / Approval
+   ↓
+Send
+```
+
+Outreach campaigns support sequencing concepts such as:
+
+```text
+Day 0
+Day 3
+Day 7
+```
+
+---
+
+# 📬 Inbox Intelligence
+
+JobPilot can classify incoming recruiter communication and identify actions that require attention.
+
+Supported categories include:
+
+- Interview invitations
+- Assessments
+- Recruiter questions
+- Offers
+- Rejections
+
+Example:
+
+```text
+Incoming Email
+      ↓
+AI Classification
+      ↓
+Category + Confidence
+      ↓
+Action Required?
+      ↓
+Suggested Reply
+```
+
+Example output:
+
+```json
+{
+  "classification": "INTERVIEW_INVITE",
+  "confidence": 0.98,
+  "actionRequired": true,
+  "proposedReplyText": "Thank you for reaching out..."
+}
+```
+
+---
+
+# 📅 Interview & Calendar Automation
+
+JobPilot includes calendar-oriented functionality for managing interview workflows.
+
+The system is designed to support:
+
+- Candidate availability
+- Conflict-aware scheduling
+- Interview event creation
+- Google Meet links
+- Recruiter email tracking
+- Calendar integration
+
+This turns recruiter communication into an actionable interview workflow rather than just an inbox notification.
+
+---
+
+# 🔐 Google Workspace Integration
+
+One of the major components of JobPilot is its Google Workspace integration.
+
+Supported architecture includes:
+
+### Gmail
+
+- OAuth authentication
+- Gmail synchronization
+- Thread retrieval
+- Email classification
+- Draft creation
+- Email sending
+- Reply handling
+
+### Google Calendar
+
+- Calendar event access
+- Availability handling
+- Interview scheduling
+- Google Meet integration
+
+### Security-oriented controls
+
+The repository includes infrastructure for:
+
+- OAuth state validation
+- PKCE-based authentication
+- Encrypted credential storage
+- Sending policies
+- Suppression lists
+- Audit logging
+- Kill switch
+- Warm-up limits
+- Quiet hours
+- Human approval gates
+
+---
+
+# 🌐 1-Click Job Clipper
+
+JobPilot also includes a Chromium-compatible browser extension.
+
+The extension is designed to capture job listings directly from supported websites and send them into the JobPilot pipeline.
+
+Currently configured website patterns include:
+
+```text
+LinkedIn
+Indeed
+Glassdoor
+```
+
+Architecture:
+
+```text
+Job Website
+     │
+     ▼
+Chrome Extension
+     │
+     ▼
+Job Extraction
+     │
+     ▼
+JobPilot API
+     │
+     ▼
+Matching / Tracking
+```
+
+---
+
+# 🏗️ Architecture
+
+JobPilot follows a modular application architecture.
+
+```text
+JobPilot
+│
 ├── apps/
-│   ├── web/               # Next.js 14 App Router, TypeScript, Tailwind, TanStack Query
-│   ├── api/               # FastAPI backend: AI service, connectors, REST endpoints
-│   ├── worker/            # Celery workers: Playwright form filler, feed discovery, email sync
-│   └── extension/         # Chrome Extension (Manifest V3) for LinkedIn/Indeed 1-click clipping
+│   ├── api/
+│   │   ├── FastAPI Backend
+│   │   ├── AI Services
+│   │   ├── Job Ingestion
+│   │   ├── Google Integration
+│   │   ├── Application APIs
+│   │   └── Outreach APIs
+│   │
+│   ├── web/
+│   │   ├── Next.js Frontend
+│   │   ├── Dashboard
+│   │   ├── Job Discovery
+│   │   ├── Applications
+│   │   ├── Inbox
+│   │   ├── Outreach
+│   │   ├── Calendar
+│   │   └── Resume Tailoring
+│   │
+│   └── worker/
+│       ├── Celery
+│       ├── Discovery Tasks
+│       ├── Email Tasks
+│       └── Playwright Automation
+│
 ├── packages/
-│   ├── shared/            # Shared TypeScript contracts, types, enums, limits
-│   └── db/                # Full PostgreSQL schema with pgvector, migrations, seed data
-├── docker/
-│   └── docker-compose.yml # PostgreSQL + pgvector, Redis 7.2, MinIO S3
-├── .env.example           # Unified environment configuration
-└── package.json           # Root workspaces orchestrator
+│   ├── db/
+│   │   ├── PostgreSQL Schema
+│   │   ├── pgvector
+│   │   └── Seed Data
+│   │
+│   └── shared/
+│       ├── Types
+│       └── Constants
+│
+├── extension/
+│   └── Browser Job Clipper
+│
+├── docs/
+│   ├── Architecture
+│   └── Google Setup
+│
+└── docker/
+    └── docker-compose.yml
 ```
 
 ---
 
-## ⚡ Quickstart Guide
+# 🧩 Technology Stack
 
-### 1. Prerequisites
-- **Node.js**: v18.0.0 or higher
-- **Python**: 3.10 or 3.11
-- **Docker**: Docker Desktop (for Postgres+pgvector, Redis, and MinIO)
+## Frontend
 
-### 2. Environment Setup
+- Next.js
+- React
+- TypeScript
+- Tailwind CSS
+
+## Backend
+
+- Python
+- FastAPI
+- Pydantic
+- Uvicorn
+- HTTPX
+
+## AI
+
+- Anthropic API integration
+- Deterministic fallback matching
+- AI resume tailoring
+- Email classification
+- Outreach generation
+
+## Database
+
+- PostgreSQL
+- pgvector
+- JSONB
+- UUID-based relational models
+- HNSW vector indexes
+
+## Background Processing
+
+- Celery
+- Redis
+
+## Browser Automation
+
+- Playwright
+- Chromium Extension Manifest V3
+
+## Integrations
+
+- Gmail
+- Google Calendar
+- Greenhouse
+- Lever
+- Ashby
+- Remotive
+- Adzuna
+
+## DevOps
+
+- Docker Compose
+- npm workspaces
+- Pytest
+
+---
+
+# 🗄️ Database Design
+
+JobPilot includes a relational PostgreSQL schema covering the major entities of the platform.
+
+Core entities include:
+
+```text
+Users
+Profiles
+Preferences
+Companies
+Jobs
+Job Matches
+Resume Variants
+Applications
+Application Events
+Contacts
+Outreach Campaigns
+Outreach Emails
+Email Threads
+Email Messages
+Calendar Events
+Suppression Lists
+Audit Logs
+Usage Limits
+Google Accounts
+OAuth Tokens
+Gmail Sync State
+Outbound Queue
+```
+
+Vector search support is provided through:
+
+```sql
+CREATE EXTENSION IF NOT EXISTS "vector";
+```
+
+and HNSW indexes are defined for vector similarity workloads.
+
+---
+
+# 🔒 Safety & Compliance-Oriented Design
+
+Automation around email and job applications needs strong guardrails.
+
+JobPilot therefore includes policy-oriented components for controlling automated actions.
+
+### Email controls
+
+```text
+Warm-up limits
+Daily send caps
+Quiet hours
+Suppression lists
+Human approval
+Draft-only mode
+Auto-send mode
+```
+
+### Sensitive communications
+
+Certain categories can require explicit human approval, including topics such as:
+
+```text
+Compensation
+Offers
+Legal matters
+Visa / immigration
+```
+
+### Auditability
+
+Important actions can be recorded with:
+
+```text
+Actor
+Action
+Target
+Metadata
+Timestamp
+```
+
+This makes automation more observable and controllable.
+
+---
+
+# 🚀 Getting Started
+
+## 1. Clone the repository
+
+```bash
+git clone https://github.com/CSrajput-ux/Jobar-.git
+cd Jobar-
+```
+
+---
+
+## 2. Install Node.js dependencies
+
+Node.js **18+** is required.
+
+```bash
+npm install
+```
+
+---
+
+## 3. Configure environment variables
+
+Copy the example environment file:
+
 ```bash
 cp .env.example .env
 ```
-Fill in your Google OAuth Client credentials (with Gmail + Calendar scopes enabled) and Anthropic API key.
 
-### 3. Start Infrastructure Containers (Docker Compose)
-```bash
-docker compose -f docker/docker-compose.yml up -d
-```
-This boots:
-- **PostgreSQL 16 + pgvector** on `localhost:5432` (auto-initializes schema + seed data)
-- **Redis 7.2** on `localhost:6379`
-- **MinIO S3 Console** on `http://localhost:9001` (login: `minioadmin` / `minioadmin`)
+Then configure the required API keys, database settings, Google OAuth credentials and other application secrets.
+
+> Never commit your real `.env` file or production credentials.
 
 ---
 
-### 4. Start the Backend API (FastAPI)
-```bash
-cd apps/api
-python -m venv venv
-# On Windows:
-.\venv\Scripts\activate
-# On Linux/macOS:
-source venv/bin/activate
+# ▶️ Run the Web Application
 
-pip install -r requirements.txt
-python main.py
+```bash
+npm run dev:web
 ```
-API Documentation will be live at: `http://localhost:8000/docs`
+
+The Next.js application will start in development mode.
 
 ---
 
-### 5. Start Celery Background Workers & Playwright
+# ▶️ Run the API
+
 ```bash
-cd apps/worker
-# Activate the same virtual environment
-pip install -r requirements.txt
-playwright install chromium
-
-# Start Celery Worker
-celery -A celery_app worker --loglevel=info
-
-# In a separate terminal, start Celery Beat for periodic hourly sync:
-celery -A celery_app beat --loglevel=info
+npm run dev:api
 ```
+
+The backend is powered by FastAPI/Uvicorn.
 
 ---
 
-### 6. Start the Web Frontend (Next.js 14)
+# ▶️ Run Web + API Together
+
+The repository uses `concurrently` for local development:
+
 ```bash
-cd apps/web
-npm install
 npm run dev
 ```
-Open **`http://localhost:3000`** in your browser to experience the JobPilot dashboard.
 
 ---
 
-### 7. Install the Chrome Extension (1-Click Clipper)
-1. Open Google Chrome and navigate to `chrome://extensions/`.
-2. Toggle on **"Developer mode"** in the top right.
-3. Click **"Load unpacked"** and select the `/extension` directory.
-4. Browse any job on LinkedIn or Indeed, click the JobPilot icon, and clip directly into your pipeline.
+# 🧪 Testing
 
----
+The repository contains backend and worker tests covering areas such as:
 
-## 🛡️ Security, Privacy & AI Quality Guardrails
+```text
+AI service
+API endpoints
+Connectors
+Global ingestion
+Google Workspace
+Security
+Playwright application automation
+```
 
-1. **Zero-Fabrication Guarantee:**  
-   The AI operates as an editor, never an inventor. The post-generation AST schema validator rejects any bullet containing unlisted companies, metrics, or technologies not present in the candidate's master profile JSON.
-2. **AES-256-GCM Token Encryption:**  
-   OAuth tokens for Gmail and Google Calendar are encrypted at rest with unique 96-bit nonces. Decryption keys reside exclusively in isolated worker memory.
-3. **Emergency Kill Switch:**  
-   Engaging the kill switch (via UI header or `/api/v1/audit/kill-switch`) instantly freezes all active Celery workers, cancels pending browser sessions, and aborts outbound emails.
-4. **Anti-Bot & Anti-Spam (CAN-SPAM / GDPR):**  
-   - Playwright uses randomized human typing intervals (40–100ms jitter) and natural viewport dimensions.
-   - **Never bypasses CAPTCHA.** When detected, the worker halts immediately, captures full screenshot proof, and alerts the candidate for 1-click completion.
-   - Cold emails are sent from the candidate's authentic mailbox using an incremental warmup throttle (10 -> 20 -> 40/day max) with an instant opt-out footer.
-
----
-
-## 🧪 Running the Test Suite
+Run:
 
 ```bash
-# Run Backend & AI Unit/Integration Tests
-cd apps/api
-pytest -v
-
-# Run Playwright E2E Browser Automation Test
-cd apps/worker
-pytest -v tests/test_playwright_apply.py
+npm test
 ```
 
 ---
 
-## 🗺️ Roadmap
-- [x] **MVP (Week 1–4):** Monorepo setup, Google OAuth2, CV parsing, Greenhouse/Lever/Remotive discovery, Claude Sonnet matching, Zero-fabrication resume tailoring, Playwright form-filler with approval queue, Cold outreach sequences, Inbound email intent classification, and Google Calendar scheduling.
-- [ ] **V1:** Ashby & Workable ATS connectors, Chrome Web Store release, bidirectional Pub/Sub email webhooks.
-- [ ] **V2:** Real-time AI voice interview simulator, live market compensation negotiation assistant, global visa-sponsor intelligence database.
+# 🐳 Docker
+
+A Docker Compose configuration is provided under:
+
+```text
+docker/docker-compose.yml
+```
+
+For a containerized development environment:
+
+```bash
+docker compose -f docker/docker-compose.yml up --build
+```
+
+---
+
+# 🌍 Global Job Ingestion Architecture
+
+JobPilot's ingestion system is designed around multiple discovery layers.
+
+```text
+                    Job Sources
+                        │
+        ┌───────────────┼────────────────┐
+        ▼               ▼                ▼
+   Official APIs     ATS Feeds      Career Pages
+        │               │                │
+        └───────────────┼────────────────┘
+                        ▼
+                 Source Registry
+                        │
+                        ▼
+                   Normalizer
+                        │
+                        ▼
+                  Deduplication
+                        │
+                        ▼
+                 Job Repository
+                        │
+                        ▼
+                  AI Matching
+```
+
+The repository includes connectors and source-management infrastructure intended to make additional job sources easier to add.
+
+---
+
+# 📁 Important Directories
+
+| Directory | Purpose |
+|---|---|
+| `apps/api` | FastAPI backend |
+| `apps/api/app/ingestion` | Job discovery and source ingestion |
+| `apps/api/app/google` | Gmail / Calendar / OAuth integration |
+| `apps/api/app/services` | AI and business services |
+| `apps/web` | Next.js dashboard |
+| `apps/worker` | Celery/background automation |
+| `packages/db` | PostgreSQL database schema |
+| `packages/shared` | Shared TypeScript types/constants |
+| `extension` | Browser job clipping extension |
+| `docs` | Architecture and setup documentation |
+| `docker` | Docker Compose configuration |
+
+---
+
+# 🖥️ Dashboard Modules
+
+The web application contains dedicated interfaces for:
+
+```text
+Overview
+Job Discovery
+Applications
+Approval Queue
+Inbox
+Outreach
+Resume Tailoring
+Calendar
+Google Integration
+Sources / Administration
+Settings
+```
+
+This provides a single workspace for the complete job-search lifecycle.
+
+---
+
+# 🔌 API Areas
+
+The FastAPI backend exposes functional areas around:
+
+```text
+/jobs
+/applications
+/matches
+/outreach
+/inbox
+/calendar
+/profile
+/sources
+Google Workspace
+Audit
+```
+
+This separation keeps discovery, matching, applications and communications modular.
+
+---
+
+# 🔮 Roadmap
+
+Potential future improvements include:
+
+- [ ] Persistent database-backed application state across all API flows
+- [ ] More production-grade ATS connectors
+- [ ] Additional job boards
+- [ ] Advanced semantic/vector matching
+- [ ] Better resume PDF generation
+- [ ] Multi-profile / multi-resume support
+- [ ] More robust browser automation
+- [ ] Application failure recovery and retry workflows
+- [ ] Advanced analytics and conversion tracking
+- [ ] Interview preparation assistant
+- [ ] Offer comparison and decision support
+- [ ] Enterprise-grade observability
+- [ ] Production deployment templates
+- [ ] Expanded automated integration tests
+
+---
+
+# ⚠️ Project Status
+
+**JobPilot is an active development project.**
+
+The repository contains a substantial end-to-end architecture covering job discovery, AI matching, resume tailoring, applications, outreach, inbox intelligence, calendar workflows, browser extension support and Google Workspace integration.
+
+However, some flows currently use mock/in-memory data or simulated responses in development-oriented backend paths. Production deployment therefore requires connecting these components to persistent infrastructure, real credentials, production data sources and appropriate operational safeguards.
+
+---
+
+# 🛡️ Security Notes
+
+Before deploying JobPilot publicly:
+
+1. Replace all development/mock credentials.
+2. Configure strong secrets through environment variables.
+3. Use a production PostgreSQL instance.
+4. Configure Redis appropriately.
+5. Configure Google OAuth credentials for the production domain.
+6. Review email automation policies.
+7. Verify application automation against target ATS platforms.
+8. Enable HTTPS/TLS.
+9. Protect internal/admin APIs.
+10. Never commit API keys, OAuth credentials or tokens.
+
+---
+
+# 🤝 Contributing
+
+Contributions are welcome.
+
+A typical workflow:
+
+```bash
+git checkout -b feature/my-feature
+
+# Make changes
+
+npm test
+npm run lint
+
+git add .
+git commit -m "feat: add my feature"
+git push origin feature/my-feature
+```
+
+Then open a Pull Request.
+
+---
+
+# 📚 Documentation
+
+Additional project documentation is available in:
+
+```text
+docs/ARCHITECTURE.md
+docs/GOOGLE_SETUP_GUIDE.md
+CHANGELOG.md
+```
+
+---
+
+# 📄 License
+
+Add the project's intended open-source license here before publishing the repository for external contributions.
+
+---
+
+# ⭐ Why JobPilot?
+
+Traditional job searching often looks like:
+
+```text
+Search → Open Job → Read → Copy Details
+→ Edit Resume → Apply → Send Email
+→ Check Gmail → Track Spreadsheet
+→ Schedule Interview
+→ Repeat
+```
+
+JobPilot aims to transform that into:
+
+```text
+Profile
+   ↓
+Discover
+   ↓
+AI Match
+   ↓
+Tailor
+   ↓
+Approve
+   ↓
+Apply
+   ↓
+Outreach
+   ↓
+Inbox Intelligence
+   ↓
+Interview
+   ↓
+Track
+```
+
+### One platform. One pipeline. Smarter job search.
+
+---
+
+<p align="center">
+
+**Built to make the job search less repetitive and more intelligent.**
+
+⭐ Star the repository if you find the project interesting.
+
+</p>

@@ -1,20 +1,16 @@
-version: '3.8'
-
 services:
   postgres:
     image: pgvector/pgvector:pg16
     container_name: jobpilot_postgres
     restart: unless-stopped
     environment:
-      POSTGRES_USER: jobpilot
-      POSTGRES_PASSWORD: jobpilot_secret
-      POSTGRES_DB: jobpilot_db
+      POSTGRES_USER: ${POSTGRES_USER:-jobpilot}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-jobpilot_secret}
+      POSTGRES_DB: ${POSTGRES_DB:-jobpilot_db}
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ../packages/db/schema.sql:/docker-entrypoint-initdb.d/01_schema.sql
-      - ../packages/db/seed.sql:/docker-entrypoint-initdb.d/02_seed.sql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U jobpilot -d jobpilot_db"]
       interval: 5s

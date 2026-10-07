@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
-from app.routers import profile, jobs, matches, applications, outreach, inbox, calendar, audit
+from app.routers import auth, profile, jobs, matches, applications, outreach, inbox, calendar, audit
 from app.ingestion import router as ingestion_router
 from app.google import router as google_workspace_router
 
@@ -16,13 +16,14 @@ app = FastAPI(
 # CORS middleware for Next.js web application
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000", "*"],
+    allow_origins=settings.CORS_ORIGINS,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allow_headers=["Content-Type", "Authorization"],
 )
 
 # Include Routers
+app.include_router(auth.router, prefix=settings.API_V1_STR)
 app.include_router(profile.router, prefix=settings.API_V1_STR)
 app.include_router(jobs.router, prefix=settings.API_V1_STR)
 app.include_router(matches.router, prefix=settings.API_V1_STR)

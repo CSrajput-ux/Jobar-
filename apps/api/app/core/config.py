@@ -1,44 +1,44 @@
-import os
-from pydantic_settings import BaseSettings
+from pydantic import model_validator
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
 
 class Settings(BaseSettings):
+    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+
     PROJECT_NAME: str = "JobPilot Core API"
     VERSION: str = "0.1.0"
     API_V1_STR: str = "/api/v1"
-    
-    # Environment
-    ENVIRONMENT: str = os.getenv("NODE_ENV", "development")
-    
-    # Database & Redis
-    DATABASE_URL: str = os.getenv("DATABASE_URL", "postgresql://jobpilot:jobpilot_secret@localhost:5432/jobpilot_db")
-    REDIS_URL: str = os.getenv("REDIS_URL", "redis://localhost:6379/0")
-    
-    # S3 / MinIO
-    S3_ENDPOINT: str = os.getenv("S3_ENDPOINT", "http://localhost:9000")
-    S3_ACCESS_KEY: str = os.getenv("S3_ACCESS_KEY", "minioadmin")
-    S3_SECRET_KEY: str = os.getenv("S3_SECRET_KEY", "minioadmin")
-    S3_BUCKET_NAME: str = os.getenv("S3_BUCKET_NAME", "jobpilot-assets")
-    
-    # AI / LLM
-    ANTHROPIC_API_KEY: str = os.getenv("ANTHROPIC_API_KEY", "")
-    ANTHROPIC_MODEL: str = os.getenv("ANTHROPIC_MODEL", "claude-3-5-sonnet-20241022")
-    
-    # Security: AES-256 Master Key (hex string 32 bytes)
-    ENCRYPTION_MASTER_KEY: str = os.getenv(
-        "ENCRYPTION_MASTER_KEY", 
-        "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
-    )
-    
-    # Hunter & Apollo
-    HUNTER_API_KEY: str = os.getenv("HUNTER_API_KEY", "")
-    APOLLO_API_KEY: str = os.getenv("APOLLO_API_KEY", "")
-    
-    # System Rate Limits
-    MAX_APPLICATIONS_PER_HOUR: int = int(os.getenv("MAX_APPLICATIONS_PER_HOUR", "5"))
-    GLOBAL_DAILY_APPLY_CAP: int = int(os.getenv("GLOBAL_DAILY_APPLY_CAP", "20"))
-    
-    class Config:
-        env_file = ".env"
-        extra = "ignore"
+    ENVIRONMENT: str = "development"
+
+    DATABASE_URL: str = ""
+    REDIS_URL: str = ""
+    S3_ENDPOINT: str = ""
+    S3_ACCESS_KEY: str = ""
+    S3_SECRET_KEY: str = ""
+    S3_BUCKET_NAME: str = "jobpilot-assets"
+
+    ANTHROPIC_API_KEY: str = ""
+    ANTHROPIC_MODEL: str = "claude-3-5-sonnet-20241022"
+    ENCRYPTION_MASTER_KEY: str = ""
+    HUNTER_API_KEY: str = ""
+    APOLLO_API_KEY: str = ""
+
+    MAX_APPLICATIONS_PER_HOUR: int = 5
+    GLOBAL_DAILY_APPLY_CAP: int = 20
+    CORS_ORIGINS: list[str] = ["http://localhost:3000", "http://127.0.0.1:3000"]
+
+    @model_validator(mode="after")
+    def validate_required_settings(self):
+        if self.ENVIRONMENT == "production":
+            required = {
+                "DATABASE_URL": self.DATABASE_URL,
+                "REDIS_URL": self.REDIS_URL,
+                "ENCRYPTION_MASTER_KEY": self.ENCRYPTION_MASTER_KEY,
+            }
+            missing = [name for name, value in required.items() if not value]
+            if missing:
+                raise ValueError(f"Missing production settings: {', '.join(missing)}")
+        return self
+
 
 settings = Settings()

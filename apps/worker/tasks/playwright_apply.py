@@ -142,33 +142,42 @@ class PlaywrightApplyRunner:
 
     async def _fill_lever_form(self, page, info: Dict[str, Any], resume_path: str = None):
         if await page.query_selector("input[name='name']"):
-            await self._human_type(page, "input[name='name']", info.get("fullName", "Alex Chen"))
+            await self._human_type(page, "input[name='name']", info.get("fullName", ""))
         if await page.query_selector("input[name='email']"):
-            await self._human_type(page, "input[name='email']", info.get("email", "candidate@example.com"))
+            await self._human_type(page, "input[name='email']", info.get("email", ""))
         if await page.query_selector("input[name='phone']"):
-            await self._human_type(page, "input[name='phone']", info.get("phone", "+15550192831"))
+            await self._human_type(page, "input[name='phone']", info.get("phone", ""))
         if await page.query_selector("input[name*='urls[LinkedIn]']"):
-            await self._human_type(page, "input[name*='urls[LinkedIn]']", info.get("linkedinUrl", "https://linkedin.com"))
+            await self._human_type(page, "input[name*='urls[LinkedIn]']", info.get("linkedinUrl", ""))
 
     async def _fill_generic_form(self, page, info: Dict[str, Any]):
         selectors = [
-            ("input[type='email']", info.get("email", "candidate@example.com")),
-            ("input[name*='name']", info.get("fullName", "Alex Chen")),
-            ("input[type='tel']", info.get("phone", "+15550192831"))
+            ("input[type='email']", info.get("email", "")),
+            ("input[name*='name']", info.get("fullName", "")),
+            ("input[type='tel']", info.get("phone", ""))
         ]
         for sel, val in selectors:
-            if await page.query_selector(sel):
+            if val and await page.query_selector(sel):
                 await self._human_type(page, sel, val)
 
     def _simulate_apply(self, application_id: str, job_url: str, candidate_info: Dict[str, Any]) -> Dict[str, Any]:
-        """High-fidelity simulated apply for non-browser or CI environments."""
+        """Simulation runner for non-browser or CI test harnesses."""
+        full_name = candidate_info.get("fullName", "")
+        email = candidate_info.get("email", "")
+        if not full_name or not email:
+            return {
+                "status": "NEEDS_ATTENTION",
+                "reason": "Missing required candidate profile information (name or email).",
+                "screenshotUrl": None,
+                "requiresManualAction": True
+            }
         return {
             "status": "APPLIED",
             "submittedAt": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
-            "screenshotUrl": f"https://storage.jobpilot.dev/proofs/proof_{application_id}.png",
+            "screenshotUrl": f"/proofs/proof_{application_id}.png",
             "payload": {
-                "fullName": candidate_info.get("fullName", "Alex Chen"),
-                "email": candidate_info.get("email", "alex.chen.dev@gmail.com"),
+                "fullName": full_name,
+                "email": email,
                 "targetUrl": job_url,
                 "verified": True
             }

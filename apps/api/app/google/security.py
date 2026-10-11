@@ -19,12 +19,26 @@ class GoogleSecurityManager:
     """
 
     def __init__(self, master_hex: str = settings.ENCRYPTION_MASTER_KEY):
-        try:
-            self.master_key = bytes.fromhex(master_hex)
-            if len(self.master_key) != 32:
-                self.master_key = self.master_key.ljust(32, b'\0')[:32]
-        except Exception:
-            self.master_key = b"01234567890123456789012345678901"
+        if settings.ENVIRONMENT == "production":
+            if not master_hex:
+                raise RuntimeError("Production ENCRYPTION_MASTER_KEY is required for Google Workspace security.")
+            try:
+                self.master_key = bytes.fromhex(master_hex)
+                if len(self.master_key) != 32:
+                    raise RuntimeError("Production ENCRYPTION_MASTER_KEY must be exactly 32 bytes (64 hex characters).")
+            except Exception as exc:
+                raise RuntimeError(f"Invalid production ENCRYPTION_MASTER_KEY: {exc}")
+        else:
+            if master_hex:
+                try:
+                    self.master_key = bytes.fromhex(master_hex)
+                    if len(self.master_key) != 32:
+                        self.master_key = self.master_key.ljust(32, b'\0')[:32]
+                except Exception:
+                    self.master_key = hashlib.sha256(b"jobpilot_google_dev_key_not_for_production").digest()
+            else:
+                self.master_key = hashlib.sha256(b"jobpilot_google_dev_key_not_for_production").digest()
+
 
     def encrypt_token(self, token_plaintext: str, user_id: str) -> bytes:
         """

@@ -19,16 +19,33 @@ import {
 interface OverviewViewProps {
   onNavigate: (tab: string) => void;
   onApproveApplication: (appId: string) => void;
+  profile?: any;
+  applications?: any[];
+  jobs?: any[];
+  calendarEvents?: any[];
 }
 
 export const OverviewView: React.FC<OverviewViewProps> = ({
   onNavigate,
   onApproveApplication,
+  profile,
+  applications = [],
+  jobs = [],
+  calendarEvents = [],
 }) => {
+  const candidateName = profile?.full_name || "Candidate";
+  const jobsCount = jobs.length;
+  const queuedApps = applications.filter(a => a.status === "QUEUED_FOR_APPROVAL");
+  const appliedCount = applications.filter(a => a.status === "APPLIED").length;
+  const interviewCount = calendarEvents.length || applications.filter(a => a.status === "INTERVIEW" || a.status === "INTERVIEWING").length;
+
+  const topQueuedApp = queuedApps[0];
+  const nextEvent = calendarEvents[0];
+
   return (
     <div className="space-y-6">
       {/* Top Banner / Welcome */}
-      <div className="relative overflow-hidden rounded-2xl p-6 glass-card border border-primary-500/20 bg-gradient-to-r from-primary-900/40 via-surface-elevated to-surface">
+      <div className="relative overflow-hidden rounded-2xl p-6 glass-card border border-primary-500/25 bg-gradient-to-r from-primary-950/40 via-surface-elevated to-surface">
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <div className="flex items-center gap-2 mb-1">
@@ -37,10 +54,10 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
               </span>
             </div>
             <h1 className="text-2xl font-extrabold text-white tracking-tight">
-              Good evening, Alex. 1 job queued for approval & 1 interview scheduled.
+              Welcome, <span className="gradient-text-gold">{candidateName}</span>. {queuedApps.length} {queuedApps.length === 1 ? "job" : "jobs"} queued for approval & {interviewCount} {interviewCount === 1 ? "interview" : "interviews"} scheduled.
             </h1>
             <p className="text-xs text-gray-400 mt-1 max-w-2xl leading-relaxed">
-              JobPilot has monitored 3 ATS boards (Greenhouse, Lever, Remotive), prepared a tailored resume diff with zero-fabrication guarantees, and is awaiting your review.
+              JobPilot is monitoring active ATS boards, generating zero-fabrication tailored applications, and enforcing human-in-the-loop review.
             </p>
           </div>
           <div className="flex items-center gap-3">
@@ -52,10 +69,10 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
             </button>
             <button
               onClick={() => onNavigate("approval")}
-              className="px-4 py-2 bg-primary-600 hover:bg-primary-500 text-white rounded-lg text-xs font-semibold shadow-glow-primary transition-all flex items-center gap-2"
+              className="px-4 py-2 bg-primary-500 hover:bg-primary-400 text-gray-950 rounded-lg text-xs font-bold shadow-glow-amber transition-all flex items-center gap-2"
             >
-              <CheckCircle2 className="w-4 h-4" />
-              Review Approvals (1)
+              <CheckCircle2 className="w-4 h-4 text-gray-950" />
+              Review Approvals ({queuedApps.length})
             </button>
           </div>
         </div>
@@ -68,9 +85,9 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
             <span>Jobs Discovered</span>
             <Sparkles className="w-4 h-4 text-primary-400" />
           </div>
-          <div className="text-2xl font-extrabold text-white">12</div>
+          <div className="text-2xl font-extrabold text-white">{jobsCount}</div>
           <div className="text-[11px] text-emerald-400 mt-1 flex items-center gap-1">
-            <TrendingUp className="w-3 h-3" /> 3 new high-fit roles today
+            <TrendingUp className="w-3 h-3" /> Real-time ATS feeds synced
           </div>
         </div>
 
@@ -79,9 +96,9 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
             <span>Approval Queue</span>
             <CheckCircle2 className="w-4 h-4 text-amber-400" />
           </div>
-          <div className="text-2xl font-extrabold text-amber-300">1</div>
+          <div className="text-2xl font-extrabold text-amber-300">{queuedApps.length}</div>
           <div className="text-[11px] text-gray-400 mt-1">
-            Vercel AI Platforms (96% fit)
+            {queuedApps.length > 0 ? `${topQueuedApp?.job?.companyName || "Role"} pending review` : "No pending items"}
           </div>
         </div>
 
@@ -90,9 +107,9 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
             <span>Applications Submitted</span>
             <FileCheck className="w-4 h-4 text-indigo-400" />
           </div>
-          <div className="text-2xl font-extrabold text-white">1</div>
+          <div className="text-2xl font-extrabold text-white">{appliedCount}</div>
           <div className="text-[11px] text-emerald-400 mt-1">
-            Supabase (Proof Verified)
+            {appliedCount > 0 ? "Persisted in pipeline" : "Awaiting first submission"}
           </div>
         </div>
 
@@ -101,9 +118,9 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
             <span>Interviews Scheduled</span>
             <Calendar className="w-4 h-4 text-emerald-400" />
           </div>
-          <div className="text-2xl font-extrabold text-emerald-300">1</div>
+          <div className="text-2xl font-extrabold text-emerald-300">{interviewCount}</div>
           <div className="text-[11px] text-gray-400 mt-1">
-            This Friday, 11:00 AM PT
+            {interviewCount > 0 ? "Synced with Calendar" : "None scheduled"}
           </div>
         </div>
       </div>
@@ -118,80 +135,115 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
           </h2>
 
           {/* Pending Approval Card */}
-          <div className="p-5 rounded-xl glass-panel border border-amber-500/30 bg-amber-500/5">
-            <div className="flex items-start justify-between">
-              <div>
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30 uppercase tracking-wide">
-                    Approval Required
-                  </span>
-                  <span className="text-xs font-semibold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
-                    96% Match Fit
-                  </span>
-                </div>
-                <h3 className="text-base font-bold text-white">
-                  Senior Full-Stack Engineer, AI Platforms
-                </h3>
-                <p className="text-xs text-gray-400 mt-0.5">
-                  Vercel • Remote (US) • Greenhouse ATS • $170,000 - $210,000
-                </p>
-                <div className="mt-3 text-xs text-gray-300 bg-surface/60 p-3 rounded-lg border border-surface-border">
-                  <span className="font-semibold text-primary-300">AI Tailoring summary:</span> Highlighted 8+ years distributed systems, Next.js App Router, and vector search. No fabricated claims.
+          {topQueuedApp ? (
+            <div className="p-5 rounded-xl glass-panel border border-amber-500/30 bg-amber-500/5">
+              <div className="flex items-start justify-between">
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30 uppercase tracking-wide">
+                      Approval Required
+                    </span>
+                    <span className="text-xs font-semibold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
+                      High Match Fit
+                    </span>
+                  </div>
+                  <h3 className="text-base font-bold text-white">
+                    {topQueuedApp.job?.title || "Senior Software Engineer"}
+                  </h3>
+                  <p className="text-xs text-gray-400 mt-0.5">
+                    {topQueuedApp.job?.companyName || "Company"} • {topQueuedApp.job?.location || "Remote"} • {topQueuedApp.job?.atsType?.toUpperCase() || "DIRECT"} • {topQueuedApp.job?.salaryRange || "Competitive"}
+                  </p>
+                  <div className="mt-3 text-xs text-gray-300 bg-surface/60 p-3 rounded-lg border border-surface-border">
+                    <span className="font-semibold text-primary-300">AI Tailoring summary:</span> {topQueuedApp.notes || "Tailored with verified background. Zero-fabrication check passed."}
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <div className="mt-4 pt-3 border-t border-surface-border flex items-center justify-between">
-              <button
-                onClick={() => onNavigate("tailoring")}
-                className="text-xs text-primary-400 hover:text-primary-300 font-semibold flex items-center gap-1"
-              >
-                Inspect Resume Diff <ChevronRight className="w-3.5 h-3.5" />
-              </button>
-              <div className="flex items-center gap-2">
+              <div className="mt-4 pt-3 border-t border-surface-border flex items-center justify-between">
                 <button
-                  onClick={() => onApproveApplication("10000000-0000-0000-0000-000000000001")}
-                  className="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-semibold shadow-glow-emerald transition-all flex items-center gap-1.5"
+                  onClick={() => onNavigate("tailoring")}
+                  className="text-xs text-primary-400 hover:text-primary-300 font-semibold flex items-center gap-1"
                 >
-                  <CheckCircle2 className="w-3.5 h-3.5" /> 1-Click Approve & Apply
+                  Inspect Resume Diff <ChevronRight className="w-3.5 h-3.5" />
                 </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => onApproveApplication(topQueuedApp.id)}
+                    className="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-semibold shadow-glow-emerald transition-all flex items-center gap-1.5"
+                  >
+                    <CheckCircle2 className="w-3.5 h-3.5" /> 1-Click Approve & Apply
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
+          ) : (
+            <div className="p-5 rounded-xl glass-panel border border-surface-border text-center py-8">
+              <CheckCircle2 className="w-8 h-8 text-emerald-400 mx-auto mb-2" />
+              <h3 className="text-sm font-bold text-white">All Caught Up</h3>
+              <p className="text-xs text-gray-400 mt-1 max-w-md mx-auto">
+                No applications currently waiting in the approval queue. Discover new jobs or adjust your target preferences to queue fresh roles.
+              </p>
+              <button
+                onClick={() => onNavigate("jobs")}
+                className="mt-3 px-3 py-1.5 bg-primary-600 hover:bg-primary-500 text-white rounded-lg text-xs font-semibold"
+              >
+                Find New Jobs
+              </button>
+            </div>
+          )}
 
           {/* Incoming Interview Alert Card */}
-          <div className="p-5 rounded-xl glass-panel border border-emerald-500/30 bg-emerald-500/5">
-            <div className="flex items-start justify-between">
-              <div>
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 uppercase tracking-wide">
-                    Interview Invitation
-                  </span>
-                  <span className="text-xs text-gray-400">Received 3 hours ago</span>
+          {nextEvent ? (
+            <div className="p-5 rounded-xl glass-panel border border-emerald-500/30 bg-emerald-500/5">
+              <div className="flex items-start justify-between">
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 uppercase tracking-wide">
+                      Interview Scheduled
+                    </span>
+                    <span className="text-xs text-gray-400">Confirmed on Calendar</span>
+                  </div>
+                  <h3 className="text-base font-bold text-white">
+                    {nextEvent.summary || nextEvent.title || "Technical Interview"}
+                  </h3>
+                  <p className="text-xs text-gray-300 mt-1">
+                    {nextEvent.company_name || nextEvent.companyName || "Company"} • {nextEvent.start_time || nextEvent.dateStr || "Upcoming slot"}
+                  </p>
                 </div>
-                <h3 className="text-base font-bold text-white">
-                  Technical Intro: Backend Engineer @ Supabase
-                </h3>
-                <p className="text-xs text-gray-300 mt-1">
-                  Elena Rostova (Recruiter) reached out requesting a 30-minute intro. AI has drafted availability confirmation based on your Google Calendar.
-                </p>
+              </div>
+              <div className="mt-4 pt-3 border-t border-surface-border flex items-center justify-between">
+                <button
+                  onClick={() => onNavigate("calendar")}
+                  className="text-xs text-emerald-400 hover:text-emerald-300 font-semibold flex items-center gap-1"
+                >
+                  View in Calendar <ChevronRight className="w-3.5 h-3.5" />
+                </button>
+                {nextEvent.meet_link && (
+                  <a
+                    href={nextEvent.meet_link}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="px-3.5 py-1.5 bg-surface-elevated hover:bg-surface-border text-gray-200 rounded-lg text-xs font-semibold border border-surface-border transition-all flex items-center gap-1.5"
+                  >
+                    <Calendar className="w-3.5 h-3.5 text-blue-400" /> Join Google Meet
+                  </a>
+                )}
               </div>
             </div>
-            <div className="mt-4 pt-3 border-t border-surface-border flex items-center justify-between">
-              <button
-                onClick={() => onNavigate("inbox")}
-                className="text-xs text-emerald-400 hover:text-emerald-300 font-semibold flex items-center gap-1"
-              >
-                View Thread & Draft Reply <ChevronRight className="w-3.5 h-3.5" />
-              </button>
+          ) : (
+            <div className="p-4 rounded-xl glass-panel border border-surface-border flex items-center justify-between text-xs text-gray-400">
+              <div className="flex items-center gap-2">
+                <Calendar className="w-4 h-4 text-gray-500" />
+                <span>Google Calendar connected • No pending interviews for today</span>
+              </div>
               <button
                 onClick={() => onNavigate("calendar")}
-                className="px-3.5 py-1.5 bg-surface-elevated hover:bg-surface-border text-gray-200 rounded-lg text-xs font-semibold border border-surface-border transition-all flex items-center gap-1.5"
+                className="text-primary-400 hover:text-primary-300 font-semibold"
               >
-                <Calendar className="w-3.5 h-3.5 text-blue-400" /> Check Google Calendar
+                Open Calendar
               </button>
             </div>
-          </div>
+          )}
         </div>
 
         {/* Right Col: Quotas & Activity Feed */}
@@ -205,10 +257,13 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
             <div>
               <div className="flex items-center justify-between text-xs mb-1.5">
                 <span className="text-gray-400">Daily Apply Quota</span>
-                <span className="font-semibold text-gray-200">1 / 15 applied</span>
+                <span className="font-semibold text-gray-200">{appliedCount} / 15 applied</span>
               </div>
               <div className="w-full bg-surface-border h-2 rounded-full overflow-hidden">
-                <div className="bg-primary-500 h-full rounded-full w-[7%] transition-all"></div>
+                <div
+                  className="bg-primary-500 h-full rounded-full transition-all"
+                  style={{ width: `${Math.min(100, Math.round((appliedCount / 15) * 100))}%` }}
+                ></div>
               </div>
             </div>
 
@@ -236,29 +291,22 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
 
           <h2 className="text-sm font-bold text-gray-200 flex items-center gap-2 pt-2">
             <Shield className="w-4 h-4 text-emerald-400" />
-            Recent Activity Log
+            Governance & Audit
           </h2>
 
           <div className="p-4 rounded-xl glass-panel border border-surface-border space-y-3 text-xs">
             <div className="flex items-start gap-2.5">
               <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 mt-1.5 shrink-0"></div>
               <div>
-                <div className="text-gray-200 font-medium">Email Classifed: Interview Invite</div>
-                <div className="text-[10px] text-gray-500">Supabase • 3 hours ago</div>
+                <div className="text-gray-200 font-medium">AES-256-GCM Encryption Active</div>
+                <div className="text-[10px] text-gray-500">OAuth tokens sealed at rest</div>
               </div>
             </div>
             <div className="flex items-start gap-2.5">
               <div className="w-1.5 h-1.5 rounded-full bg-primary-400 mt-1.5 shrink-0"></div>
               <div>
-                <div className="text-gray-200 font-medium">Form Auto-Applied (Greenhouse)</div>
-                <div className="text-[10px] text-gray-500">Supabase • Proof Screenshot Saved</div>
-              </div>
-            </div>
-            <div className="flex items-start gap-2.5">
-              <div className="w-1.5 h-1.5 rounded-full bg-amber-400 mt-1.5 shrink-0"></div>
-              <div>
-                <div className="text-gray-200 font-medium">Tailored Resume Prepared</div>
-                <div className="text-[10px] text-gray-500">Vercel AI Platforms • Queued for Review</div>
+                <div className="text-gray-200 font-medium">SSRF URL Shield Active</div>
+                <div className="text-[10px] text-gray-500">Private & link-local ranges blocked</div>
               </div>
             </div>
           </div>

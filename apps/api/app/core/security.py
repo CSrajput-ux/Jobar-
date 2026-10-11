@@ -9,14 +9,30 @@ class TokenEncryptionService:
     Generates a unique 96-bit (12-byte) initialization vector per encryption.
     """
     def __init__(self, hex_key: str = settings.ENCRYPTION_MASTER_KEY):
-        try:
-            self.key = bytes.fromhex(hex_key)
-            if len(self.key) != 32:
-                # Fallback to padded key if non-32 byte provided in development
-                self.key = self.key.ljust(32, b'\0')[:32]
-        except ValueError:
-            self.key = b"01234567890123456789012345678901"
+        if settings.ENVIRONMENT == "production":
+            if not hex_key:
+                raise RuntimeError("Production ENCRYPTION_MASTER_KEY must be provided and non-empty.")
+            try:
+                self.key = bytes.fromhex(hex_key)
+                if len(self.key) != 32:
+                    raise RuntimeError("Production ENCRYPTION_MASTER_KEY must be exactly 32 bytes (64 hex characters).")
+            except Exception as exc:
+                raise RuntimeError(f"Failed to parse production ENCRYPTION_MASTER_KEY: {exc}")
+        else:
+            if hex_key:
+                try:
+                    self.key = bytes.fromhex(hex_key)
+                    if len(self.key) != 32:
+                        self.key = self.key.ljust(32, b'\0')[:32]
+                except ValueError:
+                    # Deterministic test key for local development and test runs
+                    import hashlib
+                    self.key = hashlib.sha256(b"jobpilot_dev_transient_key_not_for_production").digest()
+            else:
+                import hashlib
+                self.key = hashlib.sha256(b"jobpilot_dev_transient_key_not_for_production").digest()
         self.aesgcm = AESGCM(self.key)
+
 
     def encrypt(self, plaintext: str) -> str:
         """

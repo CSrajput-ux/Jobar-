@@ -8,11 +8,13 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-jobpilot_secret}
       POSTGRES_DB: ${POSTGRES_DB:-jobpilot_db}
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    networks:
+      - jobpilot_net
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U jobpilot -d jobpilot_db"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-jobpilot} -d ${POSTGRES_DB:-jobpilot_db}"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -22,9 +24,11 @@ services:
     container_name: jobpilot_redis
     restart: unless-stopped
     ports:
-      - "6379:6379"
+      - "127.0.0.1:6379:6379"
     volumes:
       - redis_data:/data
+    networks:
+      - jobpilot_net
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
@@ -36,16 +40,81 @@ services:
     container_name: jobpilot_minio
     restart: unless-stopped
     environment:
-      MINIO_ROOT_USER: minioadmin
-      MINIO_ROOT_PASSWORD: minioadmin
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
     command: server /data --console-address ":9001"
     ports:
-      - "9000:9000"
-      - "9001:9001"
+      - "127.0.0.1:9000:9000"
+      - "127.0.0.1:9001:9001"
     volumes:
       - minio_data:/data
+    networks:
+      - jobpilot_net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  api:
+    build:
+      context: ../apps/api
+      dockerfile: Dockerfile
+    container_name: jobpilot_api
+    restart: unless-stopped
+    environment:
+      ENVIRONMENT: production
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-jobpilot}:${POSTGRES_PASSWORD:-jobpilot_secret}@postgres:5432/${POSTGRES_DB:-jobpilot_db}
+      REDIS_URL: redis://redis:6379/0
+      ENCRYPTION_MASTER_KEY: ${ENCRYPTION_MASTER_KEY:-0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef}
+      CORS_ORIGINS: http://localhost:3000,http://127.0.0.1:3000
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - jobpilot_net
+
+  worker:
+    build:
+      context: ../apps/worker
+      dockerfile: Dockerfile
+    container_name: jobpilot_worker
+    restart: unless-stopped
+    environment:
+      REDIS_URL: redis://redis:6379/0
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-jobpilot}:${POSTGRES_PASSWORD:-jobpilot_secret}@postgres:5432/${POSTGRES_DB:-jobpilot_db}
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - jobpilot_net
+
+  web:
+    build:
+      context: ../apps/web
+      dockerfile: Dockerfile
+    container_name: jobpilot_web
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      NEXT_PUBLIC_API_URL: http://localhost:8000/api/v1
+    ports:
+      - "3000:3000"
+    depends_on:
+      api:
+        condition: service_started
+    networks:
+      - jobpilot_net
 
 volumes:
   postgres_data:
   redis_data:
   minio_data:
+
+networks:
+  jobpilot_net:
+    driver: bridge

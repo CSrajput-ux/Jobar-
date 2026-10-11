@@ -8,81 +8,96 @@ import {
   CheckCircle2, 
   Clock, 
   AlertCircle, 
-  X,
-  FileText,
-  Building,
-  MoreVertical
+  X, 
+  FileText, 
+  Building, 
+  MoreVertical 
 } from "lucide-react";
+import { api } from "../../lib/api";
 
 interface ApplicationKanbanViewProps {
   onApprove: (appId: string) => void;
   onOpenTailoring: (job: any) => void;
+  initialApplications?: any[];
+  onRefresh?: () => void;
 }
 
 export const ApplicationKanbanView: React.FC<ApplicationKanbanViewProps> = ({
   onApprove,
-  onOpenTailoring
+  onOpenTailoring,
+  initialApplications,
+  onRefresh,
 }) => {
   const [proofModalUrl, setProofModalUrl] = useState<string | null>(null);
 
-  const [applications, setApplications] = useState([
-    {
-      id: "10000000-0000-0000-0000-000000000003",
-      companyName: "Linear",
-      title: "Staff Infrastructure & Systems Engineer",
-      status: "SAVED",
-      atsType: "lever",
-      appliedAt: null,
-      proofScreenshotUrl: null,
-      notes: "High relevance to real-time sync systems.",
-      salary: "$180,000 - $220,000"
-    },
-    {
-      id: "10000000-0000-0000-0000-000000000001",
-      companyName: "Vercel",
-      title: "Senior Full-Stack Engineer, AI Platforms",
-      status: "QUEUED_FOR_APPROVAL",
-      atsType: "greenhouse",
-      appliedAt: null,
-      proofScreenshotUrl: null,
-      notes: "96% match. Tailored resume & cover letter prepared.",
-      salary: "$170,000 - $210,000"
-    },
-    {
-      id: "10000000-0000-0000-0000-000000000002",
-      companyName: "Supabase",
-      title: "Backend Engineer, Postgres & Vector Engine",
-      status: "APPLIED",
-      atsType: "greenhouse",
-      appliedAt: "2026-09-28T14:22:00Z",
-      proofScreenshotUrl: "https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=1200&q=80",
-      notes: "Submitted via Greenhouse automation. Confirmation verified.",
-      salary: "$165,000 - $205,000"
-    },
-    {
-      id: "10000000-0000-0000-0000-000000000004",
-      companyName: "Supabase",
-      title: "Backend Engineer, Postgres & Vector Engine",
-      status: "INTERVIEW",
-      atsType: "greenhouse",
-      appliedAt: "2026-09-28T14:22:00Z",
-      proofScreenshotUrl: null,
-      notes: "Technical screen scheduled for this Friday 11am PT.",
-      salary: "$165,000 - $205,000"
+  const [applications, setApplications] = useState(() => {
+    if (initialApplications && initialApplications.length > 0) {
+      return initialApplications.map(a => ({
+        id: a.id,
+        companyName: a.job?.companyName || "Company",
+        title: a.job?.title || "Role",
+        status: a.status,
+        atsType: a.job?.atsType || "direct",
+        appliedAt: a.appliedAt,
+        proofScreenshotUrl: a.proofScreenshotUrl,
+        notes: a.notes,
+        salary: a.job?.salaryRange || "Competitive",
+      }));
     }
-  ]);
+    return [
+      {
+        id: "10000000-0000-0000-0000-000000000003",
+        companyName: "Linear",
+        title: "Staff Infrastructure & Systems Engineer",
+        status: "SAVED",
+        atsType: "lever",
+        appliedAt: null,
+        proofScreenshotUrl: null,
+        notes: "High relevance to real-time sync systems.",
+        salary: "$180,000 - $220,000"
+      },
+      {
+        id: "10000000-0000-0000-0000-000000000001",
+        companyName: "Vercel",
+        title: "Senior Full-Stack Engineer, AI Platforms",
+        status: "QUEUED_FOR_APPROVAL",
+        atsType: "greenhouse",
+        appliedAt: null,
+        proofScreenshotUrl: null,
+        notes: "Tailored resume & screening questions prepared.",
+        salary: "$170,000 - $210,000"
+      },
+      {
+        id: "10000000-0000-0000-0000-000000000002",
+        companyName: "Supabase",
+        title: "Backend Engineer, Postgres & Vector Engine",
+        status: "APPLIED",
+        atsType: "greenhouse",
+        appliedAt: "2026-09-28T14:22:00Z",
+        proofScreenshotUrl: null,
+        notes: "Submitted via ATS connector. Awaiting recruiter review.",
+        salary: "$165,000 - $205,000"
+      }
+    ];
+  });
 
   const stages = [
     { id: "SAVED", title: "Saved", count: applications.filter(a => a.status === "SAVED").length, border: "border-gray-500/30" },
     { id: "QUEUED_FOR_APPROVAL", title: "Approval Queue", count: applications.filter(a => a.status === "QUEUED_FOR_APPROVAL").length, border: "border-amber-500/40" },
     { id: "APPLIED", title: "Applied", count: applications.filter(a => a.status === "APPLIED").length, border: "border-indigo-500/40" },
-    { id: "INTERVIEW", title: "Interviews", count: applications.filter(a => a.status === "INTERVIEW").length, border: "border-emerald-500/40" },
-    { id: "OFFER", title: "Offers", count: applications.filter(a => a.status === "OFFER").length, border: "border-purple-500/40" },
-    { id: "REJECTED", title: "Archived", count: applications.filter(a => a.status === "REJECTED").length, border: "border-zinc-500/30" },
+    { id: "INTERVIEW", title: "Interviews", count: applications.filter(a => a.status === "INTERVIEW" || a.status === "INTERVIEWING").length, border: "border-emerald-500/40" },
+    { id: "OFFER", title: "Offers", count: applications.filter(a => a.status === "OFFER" || a.status === "OFFERED").length, border: "border-purple-500/40" },
+    { id: "REJECTED", title: "Archived", count: applications.filter(a => a.status === "REJECTED" || a.status === "WITHDRAWN").length, border: "border-zinc-500/30" },
   ];
 
-  const handleMoveStage = (appId: string, newStage: string) => {
+  const handleMoveStage = async (appId: string, newStage: string) => {
     setApplications(prev => prev.map(a => a.id === appId ? { ...a, status: newStage } : a));
+    try {
+      await api.updateApplicationStage(appId, newStage);
+      if (onRefresh) onRefresh();
+    } catch (err) {
+      console.warn("Failed to persist stage transition to backend:", err);
+    }
   };
 
   return (
@@ -94,7 +109,7 @@ export const ApplicationKanbanView: React.FC<ApplicationKanbanViewProps> = ({
             Application Pipeline Kanban
           </h1>
           <p className="text-xs text-gray-400 mt-1">
-            Real-time stage tracking with Playwright automated proofs and audit trails.
+            Real-time stage tracking with audit logs and persisted pipeline states.
           </p>
         </div>
       </div>
@@ -102,7 +117,7 @@ export const ApplicationKanbanView: React.FC<ApplicationKanbanViewProps> = ({
       {/* Kanban Board Horizontal Scroll */}
       <div className="flex gap-4 overflow-x-auto pb-4 items-start min-h-[600px]">
         {stages.map((col) => {
-          const colApps = applications.filter(a => a.status === col.id);
+          const colApps = applications.filter(a => a.status === col.id || (col.id === "INTERVIEW" && a.status === "INTERVIEWING") || (col.id === "OFFER" && a.status === "OFFERED") || (col.id === "REJECTED" && a.status === "WITHDRAWN"));
           return (
             <div
               key={col.id}
@@ -113,72 +128,71 @@ export const ApplicationKanbanView: React.FC<ApplicationKanbanViewProps> = ({
                 <div className="flex items-center gap-2">
                   <span className="text-xs font-bold text-gray-200">{col.title}</span>
                   <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-surface-elevated text-gray-400 border border-surface-border">
-                    {col.count}
+                    {colApps.length}
                   </span>
                 </div>
               </div>
 
-              {/* Cards list */}
-              <div className="space-y-3 flex-1">
+              {/* Application Cards */}
+              <div className="flex flex-col gap-3">
                 {colApps.map((app) => (
                   <div
                     key={app.id}
-                    className="p-3.5 rounded-xl glass-card border border-surface-border hover:border-primary-500/40 transition-all text-xs space-y-2.5 shadow-sm"
+                    className="p-4 rounded-xl glass-card border border-surface-border space-y-3 hover:border-surface-borderHover transition-all group"
                   >
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <span className="font-bold text-gray-300 text-[11px] block">{app.companyName}</span>
-                        <h4 className="font-semibold text-white text-xs mt-0.5 leading-snug">{app.title}</h4>
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-xs font-bold text-gray-300 flex items-center gap-1">
+                          <Building className="w-3 h-3 text-gray-400" /> {app.companyName}
+                        </span>
+                        <span className="text-[10px] px-1.5 py-0.2 rounded uppercase font-semibold bg-surface-elevated text-gray-400 border border-surface-border">
+                          {app.atsType}
+                        </span>
                       </div>
-                      <span className="text-[9px] uppercase px-1.5 py-0.5 rounded bg-surface-elevated text-gray-400 border border-surface-border shrink-0">
-                        {app.atsType}
-                      </span>
-                    </div>
-
-                    <div className="text-[11px] text-gray-400">
-                      {app.salary}
+                      <h3 className="text-sm font-bold text-white group-hover:text-primary-300 transition-colors">
+                        {app.title}
+                      </h3>
+                      <div className="text-[11px] text-gray-400 mt-0.5">{app.salary}</div>
                     </div>
 
                     {app.notes && (
-                      <p className="text-[11px] text-gray-400 bg-surface-elevated/40 p-2 rounded-lg border border-surface-border/50">
+                      <p className="text-[11px] text-gray-300 bg-surface/60 p-2 rounded border border-surface-border leading-relaxed line-clamp-2">
                         {app.notes}
                       </p>
                     )}
 
-                    {/* Card Actions */}
-                    <div className="pt-2 border-t border-surface-border flex items-center justify-between">
+                    {/* Footer Actions / Proof Badge */}
+                    <div className="pt-2 border-t border-surface-border flex items-center justify-between text-xs">
                       {app.status === "QUEUED_FOR_APPROVAL" ? (
                         <button
-                          onClick={() => {
-                            handleMoveStage(app.id, "APPLIED");
-                            onApprove(app.id);
-                          }}
-                          className="w-full py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-md text-[11px] font-semibold flex items-center justify-center gap-1 shadow-glow-emerald"
+                          onClick={() => onApprove(app.id)}
+                          className="w-full py-1.5 bg-amber-600 hover:bg-amber-500 text-white rounded text-[11px] font-semibold flex items-center justify-center gap-1.5 transition-all"
                         >
-                          <CheckCircle2 className="w-3.5 h-3.5" /> 1-Click Approve & Submit
+                          <CheckCircle2 className="w-3.5 h-3.5" /> Approve Submission
                         </button>
-                      ) : app.proofScreenshotUrl ? (
-                        <button
-                          onClick={() => setProofModalUrl(app.proofScreenshotUrl)}
-                          className="text-[11px] text-indigo-400 hover:text-indigo-300 font-semibold flex items-center gap-1"
-                        >
-                          <ImageIcon className="w-3.5 h-3.5" /> View Proof Screenshot
-                        </button>
+                      ) : app.status === "APPLIED" ? (
+                        <div className="flex items-center justify-between w-full">
+                          <span className="text-[11px] text-emerald-400 flex items-center gap-1 font-medium">
+                            <CheckCircle2 className="w-3 h-3" /> Submitted
+                          </span>
+                          {app.proofScreenshotUrl && (
+                            <button
+                              onClick={() => setProofModalUrl(app.proofScreenshotUrl)}
+                              className="text-[10px] text-primary-400 hover:text-primary-300 font-semibold flex items-center gap-1"
+                            >
+                              <ImageIcon className="w-3 h-3" /> View Proof
+                            </button>
+                          )}
+                        </div>
                       ) : (
-                        <div className="flex items-center justify-between w-full text-[10px] text-gray-500">
-                          <span>Stage selector:</span>
-                          <select
-                            value={app.status}
-                            onChange={(e) => handleMoveStage(app.id, e.target.value)}
-                            className="bg-surface-elevated border border-surface-border rounded px-1.5 py-0.5 text-gray-300 text-[10px] focus:outline-none"
+                        <div className="flex items-center justify-between w-full text-[11px] text-gray-400">
+                          <span>Stage: {app.status}</span>
+                          <button
+                            onClick={() => onOpenTailoring({ companyName: app.companyName, title: app.title })}
+                            className="text-primary-400 hover:text-primary-300"
                           >
-                            <option value="SAVED">Saved</option>
-                            <option value="QUEUED_FOR_APPROVAL">Queue</option>
-                            <option value="APPLIED">Applied</option>
-                            <option value="INTERVIEW">Interview</option>
-                            <option value="OFFER">Offer</option>
-                            <option value="REJECTED">Reject</option>
-                          </select>
+                            Tailor
+                          </button>
                         </div>
                       )}
                     </div>
@@ -186,8 +200,8 @@ export const ApplicationKanbanView: React.FC<ApplicationKanbanViewProps> = ({
                 ))}
 
                 {colApps.length === 0 && (
-                  <div className="h-32 border border-dashed border-surface-border/60 rounded-xl flex items-center justify-center text-xs text-gray-500">
-                    No jobs in this stage
+                  <div className="p-8 text-center border border-dashed border-surface-border rounded-xl text-xs text-gray-500">
+                    No roles in this stage
                   </div>
                 )}
               </div>
@@ -196,44 +210,27 @@ export const ApplicationKanbanView: React.FC<ApplicationKanbanViewProps> = ({
         })}
       </div>
 
-      {/* Proof Screenshot Modal */}
+      {/* Proof Modal */}
       {proofModalUrl && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="bg-surface border border-surface-border rounded-2xl max-w-3xl w-full p-6 space-y-4 shadow-glass">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-base font-bold text-white flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                  Application Proof of Submission
-                </h3>
-                <p className="text-xs text-gray-400">Captured automatically by Playwright runner with timestamped payload.</p>
-              </div>
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-surface-elevated border border-surface-border max-w-3xl w-full rounded-2xl overflow-hidden shadow-2xl space-y-4 p-5">
+            <div className="flex items-center justify-between border-b border-surface-border pb-3">
+              <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                <ImageIcon className="w-4 h-4 text-emerald-400" /> Verified Submission Proof
+              </h3>
               <button
                 onClick={() => setProofModalUrl(null)}
-                className="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-surface-elevated"
+                className="text-gray-400 hover:text-white p-1 rounded-lg"
               >
-                <X className="w-5 h-5" />
+                <X className="w-4 h-4" />
               </button>
             </div>
-
-            <div className="relative rounded-xl overflow-hidden border border-surface-border bg-black aspect-video flex items-center justify-center">
+            <div className="max-h-[60vh] overflow-auto rounded-lg border border-surface-border bg-black">
               <img
                 src={proofModalUrl}
-                alt="Submission proof"
-                className="object-cover w-full h-full"
+                alt="Automated Submission Proof"
+                className="w-full h-auto object-contain"
               />
-              <div className="absolute bottom-3 left-3 bg-surface/90 backdrop-blur-md px-3 py-1.5 rounded-lg border border-surface-border text-[11px] text-gray-200">
-                Timestamp: 2026-09-28 14:22:00 UTC • Greenhouse Form Status: 200 OK
-              </div>
-            </div>
-
-            <div className="flex justify-end">
-              <button
-                onClick={() => setProofModalUrl(null)}
-                className="px-4 py-2 bg-surface-elevated hover:bg-surface-border text-gray-200 rounded-lg text-xs font-semibold"
-              >
-                Close Proof Viewer
-              </button>
             </div>
           </div>
         </div>

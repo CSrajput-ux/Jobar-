@@ -38,7 +38,29 @@ class Settings(BaseSettings):
             missing = [name for name, value in required.items() if not value]
             if missing:
                 raise ValueError(f"Missing production settings: {', '.join(missing)}")
+            
+            # Validate encryption key length in production (must be 32 bytes = 64 hex chars)
+            try:
+                key_bytes = bytes.fromhex(self.ENCRYPTION_MASTER_KEY)
+                if len(key_bytes) != 32:
+                    raise ValueError(f"ENCRYPTION_MASTER_KEY must be exactly 32 bytes (64 hex characters), got {len(key_bytes)} bytes")
+            except ValueError as e:
+                raise ValueError(f"Invalid production ENCRYPTION_MASTER_KEY: {e}")
+
         return self
+
+    def get_database_url(self) -> str:
+        """Returns normalized async database URL."""
+        if not self.DATABASE_URL:
+            # Safe local fallback for testing/dev
+            return "sqlite+aiosqlite:///jobpilot.db"
+        url = self.DATABASE_URL
+        if url.startswith("postgresql://"):
+            return url.replace("postgresql://", "postgresql+asyncpg://", 1)
+        if url.startswith("sqlite://") and not url.startswith("sqlite+aiosqlite://"):
+            return url.replace("sqlite://", "sqlite+aiosqlite://", 1)
+        return url
 
 
 settings = Settings()
+

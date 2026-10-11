@@ -69,12 +69,12 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* User Profile avatar */}
         <div className="flex items-center gap-3 pl-3 border-l border-surface-border">
-          <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-primary-600 to-accent-violet flex items-center justify-center text-xs font-bold text-white shadow-glow-primary">
-            AC
+          <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-primary-700 via-primary-500 to-amber-300 flex items-center justify-center text-xs font-black text-gray-950 shadow-glow-amber">
+            JP
           </div>
           <div className="hidden lg:block text-left">
-            <div className="text-xs font-semibold text-gray-200">Alex Chen</div>
-            <div className="text-[10px] text-gray-400">Staff Full-Stack</div>
+            <div className="text-xs font-semibold text-gray-200">Candidate</div>
+            <div className="text-[10px] text-primary-400">Autonomous Active</div>
           </div>
         </div>
       </div>

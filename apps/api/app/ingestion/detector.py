@@ -2,6 +2,8 @@ import re
 import httpx
 from typing import Dict, Any, Optional
 from urllib.parse import urlparse
+from app.core.ssrf import validate_url_ssrf_safe
+
 
 class ATSDetector:
     """
@@ -67,6 +69,8 @@ class ATSDetector:
         # Ensure scheme
         if not target_url.startswith("http://") and not target_url.startswith("https://"):
             target_url = f"https://{target_url}"
+        target_url = validate_url_ssrf_safe(target_url)
+
 
         # 1. Check direct URL pattern first
         for sig in self.ATS_SIGNATURES:

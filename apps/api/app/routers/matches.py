@@ -1,89 +1,133 @@
-from fastapi import APIRouter, HTTPException, Body
+from __future__ import annotations
+
 from typing import Dict, Any, List
+from uuid import UUID
+from fastapi import APIRouter, HTTPException, Depends, status
+
 from app.schemas.match import JobMatchResponse, TailoredResumeSchema
 from app.services.ai_service import ai_service
-from app.routers.profile import _mock_profile
-from app.routers.jobs import _jobs_cache
+from app.core.dependencies import (
+    get_current_user,
+    get_match_repo,
+    get_job_repo,
+    get_profile_repo,
+)
+from app.core.auth import UserRecord
+from app.db.repositories import MatchRepository, JobRepository, ProfileRepository
 
 router = APIRouter(prefix="/matches", tags=["AI Matching & Tailoring"])
 
-_matches_cache: Dict[str, dict] = {
-    "e0000000-0000-0000-0000-000000000002": {
-        "id": "f0000000-0000-0000-0000-000000000001",
-        "userId": "a0000000-0000-0000-0000-000000000001",
-        "jobId": "e0000000-0000-0000-0000-000000000002",
-        "score": 96,
-        "reasoning": {
-            "score": 96,
-            "matchedSkills": ["Next.js", "TypeScript", "FastAPI", "React", "Tailwind CSS", "LLM APIs"],
-            "missingSkills": [],
-            "redFlags": [],
-            "fitSummary": "Exceptional fit. Alex has 8+ years hands-on production Next.js and high-performance API experience directly matching Vercel AI platform priorities.",
-            "seniorityAlignment": "ideal"
-        },
-        "createdAt": "2026-09-27T10:15:00Z"
-    },
-    "e0000000-0000-0000-0000-000000000003": {
-        "id": "f0000000-0000-0000-0000-000000000002",
-        "userId": "a0000000-0000-0000-0000-000000000001",
-        "jobId": "e0000000-0000-0000-0000-000000000003",
-        "score": 93,
-        "reasoning": {
-            "score": 93,
-            "matchedSkills": ["PostgreSQL", "pgvector", "Python", "Distributed Systems", "Redis"],
-            "missingSkills": ["Go Internals"],
-            "redFlags": [],
-            "fitSummary": "Outstanding backend alignment with direct pgvector production experience reducing query latency by 90%.",
-            "seniorityAlignment": "ideal"
-        },
-        "createdAt": "2026-09-28T08:00:00Z"
-    },
-    "e0000000-0000-0000-0000-000000000001": {
-        "id": "f0000000-0000-0000-0000-000000000003",
-        "userId": "a0000000-0000-0000-0000-000000000001",
-        "jobId": "e0000000-0000-0000-0000-000000000001",
-        "score": 95,
-        "reasoning": {
-            "score": 95,
-            "matchedSkills": ["Distributed Systems", "TypeScript", "Redis", "PostgreSQL", "Kafka"],
-            "missingSkills": [],
-            "redFlags": [],
-            "fitSummary": "High alignment for Linear's distributed synchronization architecture. Proven experience with high-throughput event architectures.",
-            "seniorityAlignment": "ideal"
-        },
-        "createdAt": "2026-09-26T14:30:00Z"
-    }
-}
 
 @router.get("/{job_id}", response_model=JobMatchResponse)
-async def get_match_for_job(job_id: str):
-    if job_id in _matches_cache:
-        return _matches_cache[job_id]
-    
-    # Compute on the fly if not cached
-    job = next((j for j in _jobs_cache if j["id"] == job_id), None)
-    if not job:
-        raise HTTPException(status_code=404, detail="Job not found")
+async def get_match_for_job(
+    job_id: str,
+    current_user: UserRecord = Depends(get_current_user),
+    match_repo: MatchRepository = Depends(get_match_repo),
+    job_repo: JobRepository = Depends(get_job_repo),
+    profile_repo: ProfileRepository = Depends(get_profile_repo),
+):
+    try:
+        parsed_job_id = UUID(job_id)
+    except ValueError:
+        raise HTTPException(status_code=404, detail="Invalid job ID format.")
 
-    reasoning = await ai_service.evaluate_job_match(_mock_profile, job)
-    match_obj = {
-        "id": f"match_{job_id[:8]}",
-        "userId": "a0000000-0000-0000-0000-000000000001",
-        "jobId": job_id,
-        "score": reasoning["score"],
-        "reasoning": reasoning,
-        "createdAt": "2026-09-30T12:00:00Z"
+    job = await job_repo.get_by_id(parsed_job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found.")
+
+    # Check for existing match in database
+    existing_match = await match_repo.get(current_user.id, parsed_job_id)
+    if existing_match:
+        return {
+            "id": str(existing_match.id),
+            "userId": str(existing_match.user_id),
+            "jobId": str(existing_match.job_id),
+            "score": existing_match.score,
+            "reasoning": existing_match.reasoning,
+            "createdAt": existing_match.created_at.isoformat() if existing_match.created_at else None,
+        }
+
+    # Retrieve candidate profile
+    profile = await profile_repo.get_or_create(
+        user_id=current_user.id,
+        user_name=current_user.full_name,
+        user_email=str(current_user.email),
+    )
+    profile_dict = {
+        "headline": profile.headline,
+        "summary": profile.summary,
+        "skills": profile.skills or {},
+        "experience": profile.experience or [],
     }
-    _matches_cache[job_id] = match_obj
-    return match_obj
+
+    job_dict = {
+        "title": job.title,
+        "companyName": job.company_name,
+        "descriptionText": job.description_text,
+        "requirementsText": job.requirements_text or "",
+    }
+
+    reasoning = await ai_service.evaluate_job_match(profile_dict, job_dict)
+    score = reasoning.get("score", 75)
+
+    saved = await match_repo.upsert(
+        user_id=current_user.id,
+        job_id=parsed_job_id,
+        score=score,
+        reasoning=reasoning,
+    )
+    return {
+        "id": str(saved.id),
+        "userId": str(saved.user_id),
+        "jobId": str(saved.job_id),
+        "score": saved.score,
+        "reasoning": saved.reasoning,
+        "createdAt": saved.created_at.isoformat() if saved.created_at else None,
+    }
+
 
 @router.post("/tailor-resume/{job_id}", response_model=TailoredResumeSchema)
-async def tailor_resume(job_id: str):
-    job = next((j for j in _jobs_cache if j["id"] == job_id), None)
-    if not job:
-        raise HTTPException(status_code=404, detail="Job not found")
+async def tailor_resume(
+    job_id: str,
+    current_user: UserRecord = Depends(get_current_user),
+    match_repo: MatchRepository = Depends(get_match_repo),
+    job_repo: JobRepository = Depends(get_job_repo),
+    profile_repo: ProfileRepository = Depends(get_profile_repo),
+):
+    try:
+        parsed_job_id = UUID(job_id)
+    except ValueError:
+        raise HTTPException(status_code=404, detail="Invalid job ID format.")
 
-    tailored = await ai_service.generate_tailored_resume(_mock_profile, job)
-    if job_id in _matches_cache:
-        _matches_cache[job_id]["tailoredResume"] = tailored
+    job = await job_repo.get_by_id(parsed_job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found.")
+
+    profile = await profile_repo.get_or_create(
+        user_id=current_user.id,
+        user_name=current_user.full_name,
+        user_email=str(current_user.email),
+    )
+    profile_dict = {
+        "headline": profile.headline,
+        "summary": profile.summary,
+        "skills": profile.skills or {},
+        "experience": profile.experience or [],
+    }
+
+    job_dict = {
+        "title": job.title,
+        "companyName": job.company_name,
+        "descriptionText": job.description_text,
+        "requirementsText": job.requirements_text or "",
+    }
+
+    tailored = await ai_service.generate_tailored_resume(profile_dict, job_dict)
+    await match_repo.upsert(
+        user_id=current_user.id,
+        job_id=parsed_job_id,
+        score=85,
+        reasoning={"summary": "Tailored for job"},
+        tailored_resume_json=tailored,
+    )
     return tailored

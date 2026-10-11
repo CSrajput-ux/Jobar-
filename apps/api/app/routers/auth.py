@@ -74,3 +74,17 @@ async def logout(
     token = request.headers.get("Authorization", "").removeprefix("Bearer ").strip()
     if token:
         await service.logout(token)
+
+
+@router.get("/me")
+async def get_me(
+    user: UserRecord = Depends(get_current_user),
+) -> dict:
+    return {
+        "id": str(user.id),
+        "email": str(user.email),
+        "fullName": user.full_name,
+        "role": user.role.value if hasattr(user.role, "value") else str(user.role),
+        "isActive": user.is_active,
+    }
+

@@ -50,14 +50,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
       <div>
         {/* Brand Header */}
         <div className="h-16 px-6 flex items-center gap-3 border-b border-surface-border">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-primary-600 via-primary-500 to-accent-violet flex items-center justify-center shadow-glow-primary">
-            <Zap className="w-5 h-5 text-white fill-white" />
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-primary-700 via-primary-500 to-amber-300 flex items-center justify-center shadow-glow-amber">
+            <Zap className="w-5 h-5 text-gray-950 fill-gray-950" />
           </div>
           <div>
             <div className="flex items-center gap-1.5">
               <span className="font-extrabold text-base tracking-tight text-white">JobPilot</span>
-              <span className="text-[10px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded bg-primary-500/20 text-primary-400 border border-primary-500/30">
-                PRO
+              <span className="text-[10px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded bg-primary-500/20 text-primary-300 border border-primary-500/30">
+                LUXE
               </span>
             </div>
             <div className="text-[11px] text-gray-400">Autonomous Job Search</div>

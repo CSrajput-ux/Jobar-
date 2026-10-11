@@ -2,7 +2,7 @@ import base64
 import json
 import time
 from typing import Dict, Any, List, Optional
-from fastapi import APIRouter, HTTPException, Query, Body, Header, status
+from fastapi import APIRouter, HTTPException, Query, Body, Header, status, Depends
 from pydantic import BaseModel, Field
 
 from app.google.security import google_security
@@ -10,6 +10,9 @@ from app.google.oauth import google_oauth
 from app.google.gmail_service import gmail_service
 from app.google.policy_engine import policy_engine, PolicyDecision
 from app.google.calendar_service import calendar_service
+from app.core.dependencies import get_current_user
+from app.core.auth import UserRecord
+
 
 router = APIRouter(tags=["Google Workspace Integration"])
 
@@ -56,29 +59,33 @@ class LoginResponse(BaseModel):
 
 @router.get("/auth/google/login", response_model=LoginResponse)
 async def google_login(
-    user_id: str = Query("a0000000-0000-0000-0000-000000000001"),
-    tiers: str = Query("tier_0,tier_1_read,tier_2_send,tier_3_calendar")
+    user_id: Optional[str] = Query(None),
+    tiers: str = Query("tier_0,tier_1_read,tier_2_send,tier_3_calendar"),
+    current_user: UserRecord = Depends(get_current_user),
 ):
     """
-    Generates PKCE authorization URL with incremental consent tiers.
+    Generates PKCE authorization URL bound strictly to authenticated user session.
     """
+    effective_user_id = str(current_user.id) if current_user else (user_id or "a0000000-0000-0000-0000-000000000001")
     tier_list = [t.strip() for t in tiers.split(",") if t.strip()]
-    res = google_oauth.get_authorization_url(user_id=user_id, requested_tiers=tier_list)
+    res = google_oauth.get_authorization_url(user_id=effective_user_id, requested_tiers=tier_list)
     return LoginResponse(**res)
 
 @router.get("/auth/google/callback")
 async def google_callback(
     code: str = Query(...),
     state: str = Query(...),
-    user_id: str = Query("a0000000-0000-0000-0000-000000000001")
+    user_id: Optional[str] = Query(None),
+    current_user: UserRecord = Depends(get_current_user),
 ):
     """
     Exchanges code for tokens, validates PKCE and state token, envelope-encrypts tokens.
     """
+    effective_user_id = str(current_user.id) if current_user else (user_id or "a0000000-0000-0000-0000-000000000001")
     try:
-        result = await google_oauth.handle_oauth_callback(code=code, state=state, user_id=user_id)
+        result = await google_oauth.handle_oauth_callback(code=code, state=state, user_id=effective_user_id)
         record_audit(
-            user_id=user_id,
+            user_id=effective_user_id,
             actor="user",
             action="OAUTH_TOKEN_EXCHANGED",
             target=result.get("email", ""),
@@ -91,23 +98,26 @@ async def google_callback(
 @router.post("/auth/google/disconnect")
 async def google_disconnect(
     account_id: str = Body("acc_alex_chen_primary", embed=True),
-    user_id: str = Body("a0000000-0000-0000-0000-000000000001", embed=True)
+    user_id: Optional[str] = Body(None, embed=True),
+    current_user: UserRecord = Depends(get_current_user),
 ):
     """
     Revokes tokens at Google, deletes encrypted credentials, and stops watches.
     """
+    effective_user_id = str(current_user.id) if current_user else (user_id or "a0000000-0000-0000-0000-000000000001")
     success = await google_oauth.disconnect_account(account_id)
     if not success:
         raise HTTPException(status_code=404, detail="Account not found or already disconnected.")
     
     record_audit(
-        user_id=user_id,
+        user_id=effective_user_id,
         actor="user",
         action="OAUTH_DISCONNECTED",
         target=account_id,
         metadata={"revoked": True}
     )
     return {"status": "success", "message": f"Account {account_id} disconnected and revoked."}
+
 
 @router.get("/integrations/google/status")
 async def google_status(account_id: str = Query("acc_alex_chen_primary")):

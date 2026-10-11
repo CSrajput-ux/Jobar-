@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { api } from "../../lib/api";
 import { 
   Search, 
   Filter, 
@@ -117,11 +118,35 @@ export const JobDiscoveryView: React.FC<JobDiscoveryViewProps> = ({
 
   const [jobs, setJobs] = useState(initialJobs);
 
-  const handleSyncFeeds = () => {
+  useEffect(() => {
+    let active = true;
+    async function load() {
+      try {
+        const remoteJobs = await api.getJobs();
+        if (active && Array.isArray(remoteJobs) && remoteJobs.length > 0) {
+          setJobs(remoteJobs);
+        }
+      } catch (err) {
+        console.warn("Using offline job discovery cache:", err);
+      }
+    }
+    load();
+    return () => { active = false; };
+  }, []);
+
+  const handleSyncFeeds = async () => {
     setIsSyncing(true);
-    setTimeout(() => {
+    try {
+      await api.syncJobs();
+      const fresh = await api.getJobs();
+      if (Array.isArray(fresh) && fresh.length > 0) {
+        setJobs(fresh);
+      }
+    } catch (err) {
+      console.warn("Failed to sync remote ATS feeds:", err);
+    } finally {
       setIsSyncing(false);
-    }, 1200);
+    }
   };
 
   const filteredJobs = jobs.filter(j => {

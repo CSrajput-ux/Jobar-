@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { 
   Inbox, 
   Mail, 
@@ -10,10 +10,12 @@ import {
   Sparkles, 
   Send, 
   ChevronRight, 
-  X,
-  Check,
-  Building
+  X, 
+  Check, 
+  Building,
+  AlertTriangle
 } from "lucide-react";
+import { api } from "../../lib/api";
 
 export const InboxView: React.FC = () => {
   const [threads, setThreads] = useState([
@@ -26,8 +28,8 @@ export const InboxView: React.FC = () => {
       receivedAt: "3 hours ago",
       classification: "INTERVIEW_INVITE",
       classificationLabel: "Interview Invitation",
-      snippet: "Hi Alex, thanks for your application. The engineering team reviewed your background with pgvector and would love to schedule a 30-minute technical intro...",
-      fullBody: `Hi Alex,
+      snippet: "Thanks for your application. The engineering team reviewed your background with pgvector and would love to schedule a 30-minute technical intro...",
+      fullBody: `Hello,
 
 Thank you for your application for the Backend Engineer, Postgres & Vector Engine role at Supabase.
 
@@ -47,7 +49,7 @@ I am generally available this Thursday and Friday between 10:00 AM - 4:00 PM PT.
 Looking forward to our conversation!
 
 Best regards,
-Alex Chen`,
+Candidate`,
       actionRequired: true,
       autoUpdatedPipeline: "Advanced to 'Interviews' stage in Kanban"
     },
@@ -61,7 +63,7 @@ Alex Chen`,
       classification: "REJECTION",
       classificationLabel: "Rejection",
       snippet: "Thank you for taking the time to speak with our team. While we were impressed by your background, we have decided to move forward with other candidates...",
-      fullBody: `Hi Alex,
+      fullBody: `Hello,
 
 Thank you for taking the time to consider Stripe. While your experience in distributed infrastructure is impressive, we have decided to move forward with other candidates whose specific domain specialization more closely matches our immediate roadmap.
 
@@ -78,20 +80,72 @@ The Stripe Recruiting Team`,
   const [activeThread, setActiveThread] = useState<any>(threads[0]);
   const [replyText, setReplyText] = useState(threads[0]?.proposedReply || "");
   const [isSending, setIsSending] = useState(false);
-  const [sentSuccess, setSentSuccess] = useState(false);
+  const [statusFeedback, setStatusFeedback] = useState<{ message: string; type: "success" | "warning" } | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    async function fetchThreads() {
+      try {
+        const remote = await api.getThreads();
+        if (active && Array.isArray(remote) && remote.length > 0) {
+          const mapped = remote.map(r => ({
+            id: r.id,
+            companyName: r.companyName || "Company",
+            role: "Software Engineer",
+            sender: r.fromAddress || "recruiter@company.com",
+            subject: r.subject || "Message from recruiter",
+            receivedAt: r.lastMessageAt ? new Date(r.lastMessageAt).toLocaleDateString() : "Recent",
+            classification: r.classification || "GENERAL",
+            classificationLabel: r.classification?.replace("_", " ") || "General",
+            snippet: r.snippet || "",
+            fullBody: r.snippet || "",
+            proposedReply: r.proposedReply || null,
+            actionRequired: Boolean(r.actionRequired),
+            autoUpdatedPipeline: r.actionRequired ? "Action required" : "Logged in pipeline",
+          }));
+          setThreads(mapped);
+          setActiveThread(mapped[0]);
+          setReplyText(mapped[0]?.proposedReply || "");
+        }
+      } catch (err) {
+        console.warn("Could not fetch remote threads, using local cache:", err);
+      }
+    }
+    fetchThreads();
+    return () => { active = false; };
+  }, []);
 
   const handleSelectThread = (t: any) => {
     setActiveThread(t);
     setReplyText(t.proposedReply || "");
+    setStatusFeedback(null);
   };
 
-  const handleSendReply = () => {
+  const handleSendReply = async () => {
+    if (!activeThread?.id) return;
     setIsSending(true);
-    setTimeout(() => {
+    setStatusFeedback(null);
+    try {
+      const res = await api.replyThread(activeThread.id, replyText);
+      if (res?.status === "NOT_CONFIGURED" || res?.requiresConnection) {
+        setStatusFeedback({
+          type: "warning",
+          message: res.message || "Gmail integration is not connected. Connect your Google account in Settings to send authentic emails.",
+        });
+      } else {
+        setStatusFeedback({
+          type: "success",
+          message: "Reply sent successfully via authenticated Gmail provider.",
+        });
+      }
+    } catch (err: any) {
+      setStatusFeedback({
+        type: "warning",
+        message: err.message || "Failed to dispatch reply. Verify your Google Workspace connection in Settings.",
+      });
+    } finally {
       setIsSending(false);
-      setSentSuccess(true);
-      setTimeout(() => setSentSuccess(false), 2500);
-    }, 1000);
+    }
   };
 
   return (
@@ -100,19 +154,16 @@ The Stripe Recruiting Team`,
         <div>
           <h1 className="text-xl font-extrabold text-white tracking-tight flex items-center gap-2">
             <Inbox className="w-5 h-5 text-primary-400" />
-            Inbox Intelligence & Intent Classification
+            Inbox Intelligence & Recruiter Communications
           </h1>
           <p className="text-xs text-gray-400 mt-1">
-            Real-time Gmail Pub/Sub sync. Automatic intent parsing, pipeline stage advancement, and context-aware draft generation.
+            Intent parsing, verified Google Workspace sync, and zero-fabrication outreach replies.
           </p>
         </div>
 
         <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-surface-elevated border border-surface-border text-xs text-gray-300">
-          <span className="flex h-2 w-2 relative">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-          </span>
-          <span>Gmail Watcher: Connected</span>
+          <Mail className="w-4 h-4 text-emerald-400" />
+          <span>Google Workspace Sync</span>
         </div>
       </div>
 
@@ -120,12 +171,12 @@ The Stripe Recruiting Team`,
         {/* Threads List (1 col) */}
         <div className="space-y-3">
           <h3 className="text-xs font-bold text-gray-300 uppercase tracking-wider">
-            Candidate Inbound Messages
+            Inbound Messages ({threads.length})
           </h3>
 
           <div className="space-y-2">
             {threads.map((t) => {
-              const isSelected = activeThread.id === t.id;
+              const isSelected = activeThread?.id === t.id;
               const isInvite = t.classification === "INTERVIEW_INVITE";
               return (
                 <div
@@ -158,12 +209,8 @@ The Stripe Recruiting Team`,
                   </p>
 
                   <div className="flex items-center justify-between text-[10px] text-gray-500 mt-2.5 pt-2 border-t border-surface-border/50">
+                    <span>{t.sender}</span>
                     <span>{t.receivedAt}</span>
-                    {t.actionRequired && (
-                      <span className="text-emerald-400 font-semibold flex items-center gap-1">
-                        • Action Required
-                      </span>
-                    )}
                   </div>
                 </div>
               );
@@ -174,80 +221,76 @@ The Stripe Recruiting Team`,
         {/* Thread Details & Reply Composer (2 cols) */}
         <div className="lg:col-span-2 space-y-4">
           {activeThread ? (
-            <div className="p-6 rounded-2xl glass-card border border-surface-border space-y-4">
-              {/* Header */}
-              <div className="pb-4 border-b border-surface-border flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+            <div className="p-6 rounded-2xl glass-card border border-surface-border space-y-5">
+              <div className="flex items-start justify-between gap-3 border-b border-surface-border pb-4">
                 <div>
                   <div className="flex items-center gap-2 mb-1">
                     <span className="text-xs font-bold text-gray-300">{activeThread.companyName}</span>
-                    <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-bold uppercase">
+                    <span className="text-xs px-2 py-0.5 rounded font-bold bg-primary-500/10 text-primary-400 border border-primary-500/20">
                       {activeThread.classificationLabel}
                     </span>
                   </div>
                   <h2 className="text-base font-bold text-white">{activeThread.subject}</h2>
                   <div className="text-xs text-gray-400 mt-0.5">
-                    From: <span className="text-gray-200 font-medium">{activeThread.sender}</span>
-                  </div>
-                </div>
-
-                <div className="text-right">
-                  <div className="text-[11px] font-semibold text-primary-400 bg-primary-500/10 px-2.5 py-1 rounded-lg border border-primary-500/20">
-                    {activeThread.autoUpdatedPipeline}
+                    From: <span className="text-gray-300 font-medium">{activeThread.sender}</span>
                   </div>
                 </div>
               </div>
 
               {/* Message Body */}
-              <div className="bg-surface/70 p-4 rounded-xl border border-surface-border text-xs text-gray-300 whitespace-pre-line leading-relaxed font-sans">
+              <div className="bg-surface/50 p-4 rounded-xl border border-surface-border text-xs text-gray-200 leading-relaxed whitespace-pre-line">
                 {activeThread.fullBody}
               </div>
 
-              {/* Context-aware Reply Composer */}
-              {activeThread.actionRequired && (
-                <div className="pt-2 space-y-3">
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="font-bold text-gray-200 flex items-center gap-1.5">
-                      <Sparkles className="w-3.5 h-3.5 text-primary-400" />
-                      AI Context-Aware Draft Reply (GCal Synced)
-                    </span>
-                    <span className="text-[10px] text-gray-400">Thread-aware reply</span>
-                  </div>
-
-                  <textarea
-                    rows={5}
-                    value={replyText}
-                    onChange={(e) => setReplyText(e.target.value)}
-                    className="w-full p-3.5 bg-surface/80 border border-surface-border rounded-xl text-xs text-white leading-relaxed focus:outline-none focus:border-primary-500 font-sans"
-                  />
-
-                  <div className="flex items-center justify-between pt-1">
-                    <span className="text-[11px] text-gray-500">
-                      Dispatched directly to {activeThread.sender}
-                    </span>
-                    <button
-                      onClick={handleSendReply}
-                      disabled={isSending}
-                      className="px-5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-semibold shadow-glow-emerald flex items-center gap-2 transition-all disabled:opacity-50"
-                    >
-                      {sentSuccess ? (
-                        <>
-                          <Check className="w-4 h-4 text-emerald-200" />
-                          <span>Sent via Gmail!</span>
-                        </>
-                      ) : (
-                        <>
-                          <Send className="w-3.5 h-3.5" />
-                          <span>{isSending ? "Sending..." : "Send Reply via Gmail"}</span>
-                        </>
-                      )}
-                    </button>
-                  </div>
+              {/* Reply Section */}
+              <div className="space-y-3 pt-2">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="font-bold text-gray-200 flex items-center gap-1.5">
+                    <Sparkles className="w-3.5 h-3.5 text-primary-400" /> AI Drafted Response
+                  </span>
+                  <span className="text-[11px] text-gray-400">Review before dispatch</span>
                 </div>
-              )}
+
+                <textarea
+                  value={replyText}
+                  onChange={(e) => setReplyText(e.target.value)}
+                  rows={6}
+                  className="w-full bg-surface-elevated border border-surface-border rounded-xl p-3 text-xs text-gray-200 focus:outline-none focus:border-primary-500 leading-relaxed"
+                  placeholder="Draft your reply..."
+                />
+
+                {statusFeedback && (
+                  <div
+                    className={`p-3 rounded-lg border text-xs flex items-center gap-2 ${
+                      statusFeedback.type === "success"
+                        ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-300"
+                        : "bg-amber-500/10 border-amber-500/30 text-amber-300"
+                    }`}
+                  >
+                    {statusFeedback.type === "success" ? (
+                      <CheckCircle2 className="w-4 h-4 shrink-0" />
+                    ) : (
+                      <AlertTriangle className="w-4 h-4 shrink-0" />
+                    )}
+                    <span>{statusFeedback.message}</span>
+                  </div>
+                )}
+
+                <div className="flex items-center justify-end gap-3 pt-2">
+                  <button
+                    onClick={handleSendReply}
+                    disabled={isSending || !replyText}
+                    className="px-4 py-2 bg-primary-600 hover:bg-primary-500 disabled:opacity-50 text-white rounded-lg text-xs font-semibold shadow-glow-primary transition-all flex items-center gap-2"
+                  >
+                    <Send className="w-3.5 h-3.5" />
+                    <span>{isSending ? "Sending..." : "Send Reply via Gmail"}</span>
+                  </button>
+                </div>
+              </div>
             </div>
           ) : (
-            <div className="h-64 glass-panel rounded-2xl flex items-center justify-center text-xs text-gray-500">
-              Select an email thread to view details
+            <div className="p-12 text-center rounded-2xl glass-panel border border-surface-border text-xs text-gray-400">
+              Select an inbound message to view contents and compose replies.
             </div>
           )}
         </div>

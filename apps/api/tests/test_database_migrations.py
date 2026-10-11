@@ -7,4 +7,5 @@ def test_migration_chain_has_a_single_head() -> None:
     script = ScriptDirectory.from_config(config)
 
     heads = script.get_heads()
-    assert heads == ["202610070001"]
+    assert heads == ["202610110002"]
+

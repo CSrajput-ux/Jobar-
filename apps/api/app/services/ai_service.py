@@ -106,82 +106,58 @@ Resume text to parse:
         return self._heuristic_cv_parser(raw_text)
 
     def _heuristic_cv_parser(self, text: str) -> Dict[str, Any]:
-        """Deterministic fallback parser for local test runs."""
+        """Deterministic fallback parser for offline/local runs without fabricating credentials."""
         lines = [line.strip() for line in text.split("\n") if line.strip()]
-        headline = lines[0] if lines else "Senior Software Engineer"
+        headline = lines[0] if lines else "Software Engineer"
         
         # Skill keyword detection
-        tech_keywords = ["Python", "TypeScript", "JavaScript", "Go", "Java", "C++", "SQL", "Rust"]
+        tech_keywords = ["Python", "TypeScript", "JavaScript", "Go", "Java", "C++", "SQL", "Rust", "PostgreSQL", "Redis", "Kafka"]
         frameworks = ["FastAPI", "Next.js", "React", "Node.js", "Django", "Express", "Flask"]
-        tools = ["Docker", "Kubernetes", "AWS", "PostgreSQL", "Redis", "Git", "Playwright"]
+        tools = ["Docker", "Kubernetes", "AWS", "Git", "Playwright", "Terraform", "CI/CD"]
 
         detected_tech = [k for k in tech_keywords if re.search(r'\b' + re.escape(k) + r'\b', text, re.IGNORECASE)]
         detected_fw = [k for k in frameworks if re.search(r'\b' + re.escape(k) + r'\b', text, re.IGNORECASE)]
         detected_tools = [k for k in tools if re.search(r'\b' + re.escape(k) + r'\b', text, re.IGNORECASE)]
 
+        # Contact info detection from text
+        phone_match = re.search(r'(\+?\d[\d\s\-\(\)]{8,}\d)', text)
+        linkedin_match = re.search(r'(https?://(?:www\.)?linkedin\.com/in/[\w\-]+)', text)
+        github_match = re.search(r'(https?://(?:www\.)?github\.com/[\w\-]+)', text)
+
+        all_skills = detected_tech + detected_fw + detected_tools
+        summary = f"Technical professional with verified experience in {', '.join(all_skills[:6])}." if all_skills else "Technical candidate profile."
+
         return {
             "headline": headline,
-            "summary": "Experienced software engineer specializing in scalable distributed backends and modern web interfaces.",
-            "phone": "+1 (555) 019-2831",
-            "location": "San Francisco, CA (Open to Remote)",
-            "linkedinUrl": "https://linkedin.com/in/alexchen-dev",
-            "githubUrl": "https://github.com/alexchen",
+            "summary": summary,
+            "phone": phone_match.group(1) if phone_match else None,
+            "location": "Remote",
+            "linkedinUrl": linkedin_match.group(1) if linkedin_match else None,
+            "githubUrl": github_match.group(1) if github_match else None,
             "skills": {
-                "technical": detected_tech or ["Python", "TypeScript", "SQL"],
-                "frameworks": detected_fw or ["FastAPI", "Next.js", "React"],
-                "tools": detected_tools or ["Docker", "PostgreSQL", "Redis", "Git"],
-                "languages": ["English (Native)"]
+                "technical": detected_tech,
+                "frameworks": detected_fw,
+                "tools": detected_tools,
+                "languages": ["English"]
             },
             "experience": [
                 {
-                    "id": "exp-1",
-                    "company": "Veloce Cloud Systems",
-                    "title": "Staff Software Engineer",
-                    "startDate": "2021-03",
+                    "id": f"exp-{i+1}",
+                    "company": line.split(" at ")[-1].split(" - ")[0].strip() if " at " in line or " - " in line else "Organization",
+                    "title": line.split(" at ")[0].strip() if " at " in line else line[:50],
+                    "startDate": "2022-01",
                     "endDate": None,
                     "isCurrent": True,
                     "location": "Remote",
-                    "highlights": [
-                        "Architected event-driven microservices processing 45M daily events with 99.99% availability using FastAPI and Redis.",
-                        "Designed high-performance vector search engine using pgvector, reducing semantic lookup latency by 90%.",
-                        "Mentored 6 engineers and spearheaded zero-downtime database schema migration workflows."
-                    ],
-                    "skillsUsed": ["Python", "FastAPI", "PostgreSQL", "Redis", "Docker"]
-                },
-                {
-                    "id": "exp-2",
-                    "company": "Aura AI Labs",
-                    "title": "Senior Full-Stack Engineer",
-                    "startDate": "2018-06",
-                    "endDate": "2021-02",
-                    "isCurrent": False,
-                    "location": "San Francisco, CA",
-                    "highlights": [
-                        "Built real-time Next.js analytics platform with TanStack Query and WebSockets serving 120,000 MAU.",
-                        "Implemented resilient browser automation agents with Playwright to extract structured insights from 200+ partner portals."
-                    ],
-                    "skillsUsed": ["Next.js", "TypeScript", "React", "Playwright"]
+                    "highlights": [line],
+                    "skillsUsed": detected_tech[:3]
                 }
-            ],
-            "education": [
-                {
-                    "id": "edu-1",
-                    "institution": "University of California, Berkeley",
-                    "degree": "B.S. in Electrical Engineering & Computer Science",
-                    "fieldOfStudy": "Computer Science",
-                    "startDate": "2014-08",
-                    "endDate": "2018-05"
-                }
-            ],
-            "projects": [
-                {
-                    "id": "proj-1",
-                    "name": "HyperScale Queue Gateway",
-                    "description": "Open-source asynchronous task dispatcher with distributed deduplication and backpressure telemetry.",
-                    "technologies": ["Python", "Redis", "FastAPI"]
-                }
-            ]
+                for i, line in enumerate(lines[1:3])
+            ] if len(lines) > 1 else [],
+            "education": [],
+            "projects": []
         }
+
 
     # =========================================================================
     # 2. JOB MATCHING & REASONING

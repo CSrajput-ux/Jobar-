@@ -226,6 +226,7 @@ export const ApplicationKanbanView: React.FC<ApplicationKanbanViewProps> = ({
               </button>
             </div>
             <div className="max-h-[60vh] overflow-auto rounded-lg border border-surface-border bg-black">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={proofModalUrl}
                 alt="Automated Submission Proof"

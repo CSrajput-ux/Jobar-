@@ -131,7 +131,7 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
         <div className="lg:col-span-2 space-y-4">
           <h2 className="text-sm font-bold text-gray-200 flex items-center gap-2">
             <Clock className="w-4 h-4 text-primary-400" />
-            Today's Action Center
+            Today&apos;s Action Center
           </h2>
 
           {/* Pending Approval Card */}

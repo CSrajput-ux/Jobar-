@@ -215,7 +215,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
             </div>
 
             <div className="space-y-1">
-              <label className="text-xs font-bold text-gray-300">Default "Why This Company?" Statement</label>
+              <label className="text-xs font-bold text-gray-300">Default &quot;Why This Company?&quot; Statement</label>
               <textarea
                 rows={3}
                 value={whyCompany}

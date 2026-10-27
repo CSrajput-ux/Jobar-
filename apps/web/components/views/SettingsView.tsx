@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
+import { api } from "../../lib/api";
 import { 
   Sliders, 
   User, 
@@ -27,6 +28,10 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState<"preferences" | "profile" | "qa" | "security">("preferences");
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const resumeInputRef = useRef<HTMLInputElement>(null);
+  const [resumeStatus, setResumeStatus] = useState<string | null>(null);
+  const [resumeError, setResumeError] = useState<string | null>(null);
+  const [recommendations, setRecommendations] = useState<any[]>([]);
 
   // Preferences State
   const [targetRoles, setTargetRoles] = useState("Staff Software Engineer, Senior Full Stack Engineer, Principal Backend Engineer");
@@ -44,6 +49,25 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   const handleSave = () => {
     setSaveSuccess(true);
     setTimeout(() => setSaveSuccess(false), 2000);
+  };
+
+  const handleResumeUpload = async (file?: File) => {
+    if (!file) return;
+    setResumeError(null);
+    setResumeStatus("Resume parsing and job matching are in progress…");
+    try {
+      await api.uploadResume(file);
+      const result = await api.analyzeResumeMatches();
+      setRecommendations(result.recommendations || []);
+      setResumeStatus(
+        `Resume analyzed. ${result.recommendations?.length || 0} jobs scored; ${result.queuedForApproval || 0} suitable jobs added to your approval queue.`
+      );
+    } catch (err) {
+      setResumeStatus(null);
+      setResumeError(err instanceof Error ? err.message : "Resume analysis failed. Please try another file.");
+    } finally {
+      if (resumeInputRef.current) resumeInputRef.current.value = "";
+    }
   };
 
   return (
@@ -282,18 +306,46 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
       {/* Tab: Master CV Upload */}
       {activeTab === "profile" && (
         <div className="p-6 rounded-2xl glass-card border border-surface-border space-y-4">
-          <div className="border-2 border-dashed border-surface-border hover:border-primary-500/50 rounded-2xl p-8 text-center transition-all cursor-pointer bg-surface/40">
+          <input
+            ref={resumeInputRef}
+            type="file"
+            accept=".pdf,.docx,.txt,.md"
+            className="hidden"
+            onChange={(event) => handleResumeUpload(event.target.files?.[0])}
+          />
+          <button
+            type="button"
+            onClick={() => resumeInputRef.current?.click()}
+            className="w-full border-2 border-dashed border-surface-border hover:border-primary-500/50 rounded-2xl p-8 text-center transition-all cursor-pointer bg-surface/40"
+          >
             <Upload className="w-8 h-8 text-primary-400 mx-auto mb-2" />
-            <div className="text-xs font-bold text-white">Upload New CV (PDF / DOCX)</div>
+            <div className="text-xs font-bold text-white">Upload Resume & Find Suitable Jobs</div>
             <div className="text-[11px] text-gray-500 mt-0.5">
-              Claude 3.5 Sonnet extracts experience highlights, technical skills, and education into normalized JSON.
+              PDF, DOCX, TXT, or Markdown · skills and experience are extracted, then live catalog jobs are scored.
             </div>
-          </div>
+          </button>
 
-          <div className="p-4 rounded-xl bg-surface border border-surface-border text-xs text-gray-300">
-            <span className="font-bold text-white block mb-1">Active Parsed Profile:</span>
-            Alex Chen • Staff Full-Stack & Distributed Systems Engineer • 8+ years experience • Python, TypeScript, Next.js, pgvector, Redis, Docker
-          </div>
+          <p className="text-[11px] text-gray-400">
+            Suitable jobs are put into the approval queue only. Nothing is applied for or submitted automatically.
+          </p>
+
+          {resumeStatus && <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-xs text-emerald-200">{resumeStatus}</div>}
+          {resumeError && <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-xs text-rose-200">{resumeError}</div>}
+
+          {recommendations.length > 0 && (
+            <div className="space-y-2">
+              <h3 className="text-xs font-bold text-gray-200">Top resume matches</h3>
+              {recommendations.slice(0, 5).map((match) => (
+                <div key={match.jobId} className="p-3 rounded-xl bg-surface border border-surface-border flex items-center justify-between gap-3">
+                  <div>
+                    <div className="text-xs font-semibold text-white">{match.title}</div>
+                    <div className="text-[11px] text-gray-400">{match.companyName}</div>
+                  </div>
+                  <span className="text-xs font-bold text-emerald-400">{match.score}% match</span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>

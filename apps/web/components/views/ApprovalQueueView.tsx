@@ -91,7 +91,7 @@ export const ApprovalQueueView: React.FC<ApprovalQueueViewProps> = ({
             Candidate Approval Queue
           </h1>
           <p className="text-xs text-gray-400 mt-1">
-            Human-in-the-loop review. Inspect pre-filled ATS answers and tailored bullets before submission is authorized.
+            Human-in-the-loop review. Inspect the materials and answers before recording approval for a later, supervised submission.
           </p>
         </div>
 
@@ -113,7 +113,7 @@ export const ApprovalQueueView: React.FC<ApprovalQueueViewProps> = ({
           </div>
           <h3 className="text-base font-bold text-white">Queue is clear!</h3>
           <p className="text-xs text-gray-400 max-w-md mx-auto">
-            All pending applications have been approved and submitted. New discovered matches will appear here automatically.
+            All pending applications have been approved and are awaiting supervised submission. New discovered matches will appear here automatically.
           </p>
         </div>
       ) : (
@@ -151,7 +151,7 @@ export const ApprovalQueueView: React.FC<ApprovalQueueViewProps> = ({
                     onClick={() => handleApprove(item.id)}
                     className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-semibold shadow-glow-emerald flex items-center gap-1.5 transition-all"
                   >
-                    <CheckCircle2 className="w-4 h-4" /> 1-Click Approve & Submit
+                    <CheckCircle2 className="w-4 h-4" /> Approve for Submission
                   </button>
                 </div>
               </div>

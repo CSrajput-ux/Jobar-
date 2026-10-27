@@ -1,0 +1,252 @@
+{
+  "platforms": [
+    {
+      "id": "wellfound",
+      "name": "Wellfound (AngelList)",
+      "tagline": "Top startups & high-growth tech roles",
+      "url": "https://wellfound.com/jobs",
+      "loginUrl": "https://wellfound.com/login",
+      "logo": "wellfound",
+      "category": "Startups & Tech",
+      "isConnected": true,
+      "accountEmail": "alex.chen.dev@example.com",
+      "sessionSavedAt": "2026-10-27T10:00:00Z",
+      "autoApplyEnabled": true,
+      "credentialsStored": true,
+      "appliedCount": 19,
+      "lastSyncStatus": "Active Session Verified",
+      "featured": true
+    },
+    {
+      "id": "naukri",
+      "name": "Naukri.com",
+      "tagline": "India's #1 tech recruitment & corporate hiring portal",
+      "url": "https://www.naukri.com/it-jobs",
+      "loginUrl": "https://www.naukri.com/nlogin/login",
+      "logo": "naukri",
+      "category": "India & Global",
+      "isConnected": true,
+      "accountEmail": "alex.chen.career@example.com",
+      "sessionSavedAt": "2026-10-27T11:30:00Z",
+      "autoApplyEnabled": true,
+      "credentialsStored": true,
+      "appliedCount": 26,
+      "lastSyncStatus": "Session Active (Auto-Applier Ready)",
+      "featured": true
+    },
+    {
+      "id": "linkedin",
+      "name": "LinkedIn Jobs",
+      "tagline": "Professional network & Easy Apply opportunities",
+      "url": "https://www.linkedin.com/jobs",
+      "loginUrl": "https://www.linkedin.com/login",
+      "logo": "linkedin",
+      "category": "Global Enterprise",
+      "isConnected": true,
+      "accountEmail": "alex.chen@linkedin.com",
+      "sessionSavedAt": "2026-10-27T09:15:00Z",
+      "autoApplyEnabled": true,
+      "credentialsStored": true,
+      "appliedCount": 32,
+      "lastSyncStatus": "Connected (Easy Apply Ready)",
+      "featured": true
+    },
+    {
+      "id": "indeed",
+      "name": "Indeed",
+      "tagline": "Worldwide job aggregator & instant apply",
+      "url": "https://www.indeed.com",
+      "loginUrl": "https://secure.indeed.com/auth",
+      "logo": "indeed",
+      "category": "Global Aggregator",
+      "isConnected": false,
+      "accountEmail": null,
+      "sessionSavedAt": null,
+      "autoApplyEnabled": false,
+      "credentialsStored": false,
+      "appliedCount": 0,
+      "lastSyncStatus": "Ready for Login",
+      "featured": false
+    },
+    {
+      "id": "internshala",
+      "name": "Internshala Jobs",
+      "tagline": "Early-career & high-growth software opportunities",
+      "url": "https://internshala.com/jobs",
+      "loginUrl": "https://internshala.com/login/user",
+      "logo": "internshala",
+      "category": "Early Career & Fast Growth",
+      "isConnected": false,
+      "accountEmail": null,
+      "sessionSavedAt": null,
+      "autoApplyEnabled": false,
+      "credentialsStored": false,
+      "appliedCount": 0,
+      "lastSyncStatus": "Ready for Login",
+      "featured": false
+    },
+    {
+      "id": "glassdoor",
+      "name": "Glassdoor",
+      "tagline": "Verified company reviews & direct job listings",
+      "url": "https://www.glassdoor.com/Job",
+      "loginUrl": "https://www.glassdoor.com/profile/login_input.htm",
+      "logo": "glassdoor",
+      "category": "Global & Insights",
+      "isConnected": false,
+      "accountEmail": null,
+      "sessionSavedAt": null,
+      "autoApplyEnabled": false,
+      "credentialsStored": false,
+      "appliedCount": 0,
+      "lastSyncStatus": "Ready for Login",
+      "featured": false
+    },
+    {
+      "id": "greenhouse",
+      "name": "Greenhouse ATS Direct",
+      "tagline": "Direct corporate engineering boards (Vercel, Supabase, etc.)",
+      "url": "https://boards.greenhouse.io",
+      "loginUrl": "https://boards.greenhouse.io",
+      "logo": "greenhouse",
+      "category": "Direct ATS",
+      "isConnected": true,
+      "accountEmail": "alex.chen.dev@example.com",
+      "sessionSavedAt": "2026-10-27T08:00:00Z",
+      "autoApplyEnabled": true,
+      "credentialsStored": true,
+      "appliedCount": 43,
+      "lastSyncStatus": "Direct API Ingestion Active",
+      "featured": true
+    },
+    {
+      "id": "lever",
+      "name": "Lever ATS Direct",
+      "tagline": "Modern tech companies (Linear, Figma, Netflix, etc.)",
+      "url": "https://jobs.lever.co",
+      "loginUrl": "https://jobs.lever.co",
+      "logo": "lever",
+      "category": "Direct ATS",
+      "isConnected": true,
+      "accountEmail": "alex.chen.dev@example.com",
+      "sessionSavedAt": "2026-10-27T08:00:00Z",
+      "autoApplyEnabled": true,
+      "credentialsStored": true,
+      "appliedCount": 30,
+      "lastSyncStatus": "Direct API Ingestion Active",
+      "featured": true
+    }
+  ],
+  "config": {
+    "autoPilotActive": false,
+    "targetRoles": [
+      "Full Stack Developer",
+      "Senior Frontend Engineer",
+      "Backend Engineer",
+      "AI/ML Engineer"
+    ],
+    "locations": [
+      "Remote",
+      "Worldwide",
+      "India (Bangalore/Hybrid)",
+      "United States"
+    ],
+    "workModes": [
+      "remote",
+      "hybrid"
+    ],
+    "minMatchScore": 85,
+    "dailyApplyCap": 20,
+    "maxApplicationsPerHour": 5,
+    "autoTailorResume": true,
+    "autoGenerateCoverLetter": true,
+    "antiBotHumanPacing": true,
+    "stopOnCaptcha": true,
+    "activePlatformIds": [
+      "wellfound",
+      "naukri",
+      "linkedin",
+      "greenhouse",
+      "lever"
+    ]
+  },
+  "logs": [
+    {
+      "id": "log-2de122",
+      "timestamp": "2026-10-27T17:02:18.813953+00:00",
+      "platform": "Auto-Pilot Core",
+      "level": "INFO",
+      "message": "Auto-Apply parameters updated. Auto-Pilot status: PAUSED (Daily Cap: 20 applications)."
+    },
+    {
+      "id": "log-c7f68d",
+      "timestamp": "2026-10-27T16:59:46.314647+00:00",
+      "platform": "Lever ATS Direct",
+      "level": "SUCCESS",
+      "message": "[Autonomous Bot] Tailored resume & auto-applied to 'Senior Backend Engineer - Core Payments' at Swiggy (94% Match). Confirmation verified."
+    },
+    {
+      "id": "log-06dbad",
+      "timestamp": "2026-10-27T16:59:46.314647+00:00",
+      "platform": "Greenhouse ATS Direct",
+      "level": "SUCCESS",
+      "message": "[Autonomous Bot] Tailored resume & auto-applied to 'Senior Full-Stack Engineer, AI Platforms' at Vercel (97% Match). Confirmation verified."
+    },
+    {
+      "id": "log-9faaab",
+      "timestamp": "2026-10-27T16:59:46.314647+00:00",
+      "platform": "LinkedIn Jobs",
+      "level": "SUCCESS",
+      "message": "[Autonomous Bot] Tailored resume & auto-applied to 'Senior Infrastructure & Cloud Architect' at Coinbase (92% Match). Confirmation verified."
+    },
+    {
+      "id": "log-969c68",
+      "timestamp": "2026-10-27T16:59:46.314647+00:00",
+      "platform": "Naukri.com",
+      "level": "SUCCESS",
+      "message": "[Autonomous Bot] Tailored resume & auto-applied to 'Lead Software Engineer - Logistics AI' at Zepto (91% Match). Confirmation verified."
+    },
+    {
+      "id": "log-4d446a",
+      "timestamp": "2026-10-27T16:59:46.314647+00:00",
+      "platform": "Naukri.com",
+      "level": "SUCCESS",
+      "message": "[Autonomous Bot] Tailored resume & auto-applied to 'Senior Backend Engineer - Core Payments' at Swiggy (94% Match). Confirmation verified."
+    },
+    {
+      "id": "log-385fcf",
+      "timestamp": "2026-10-27T16:59:46.314647+00:00",
+      "platform": "Wellfound (AngelList)",
+      "level": "SUCCESS",
+      "message": "[Autonomous Bot] Tailored resume & auto-applied to 'Staff Full Stack Engineer - API Network' at Postman (96% Match). Confirmation verified."
+    },
+    {
+      "id": "log-1",
+      "timestamp": "2026-10-27T21:40:12Z",
+      "platform": "Wellfound",
+      "level": "INFO",
+      "message": "Autonomous scanner detected 6 new matching roles for 'Full Stack Engineer' (Fit >= 85%)."
+    },
+    {
+      "id": "log-2",
+      "timestamp": "2026-10-27T21:41:05Z",
+      "platform": "Naukri",
+      "level": "SUCCESS",
+      "message": "Auto-tailored resume for 'Lead Python/FastAPI Architect' at Razorpay. Applied via saved session."
+    },
+    {
+      "id": "log-3",
+      "timestamp": "2026-10-27T21:42:30Z",
+      "platform": "LinkedIn",
+      "level": "SUCCESS",
+      "message": "Easy Apply dispatched for 'Senior Frontend Engineer' at Stripe. Confirmation received and proof logged."
+    },
+    {
+      "id": "log-4",
+      "timestamp": "2026-10-27T21:45:10Z",
+      "platform": "JobPilot Core",
+      "level": "INFO",
+      "message": "Auto-pilot cycle idle. Next automated search batch scheduled in 15 minutes."
+    }
+  ]
+}

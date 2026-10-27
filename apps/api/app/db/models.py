@@ -275,6 +275,7 @@ class Application(Base):
         UUIDColumn(as_uuid=True), ForeignKey("jobs.id", ondelete="CASCADE"), nullable=False, index=True
     )
     status: Mapped[str] = mapped_column(String(50), nullable=False, default="SAVED", index=True)
+    approved_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
     applied_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
     proof_screenshot_url: Mapped[Optional[str]] = mapped_column(Text)
     submitted_payload: Mapped[Optional[Dict[str, Any]]] = mapped_column(JSON)

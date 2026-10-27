@@ -16,6 +16,7 @@ class ApplicationResponse(BaseModel):
     userId: str
     jobId: str
     status: str
+    approvedAt: Optional[str] = None
     appliedAt: Optional[str] = None
     proofScreenshotUrl: Optional[str] = None
     submittedPayload: Optional[Dict[str, Any]] = None

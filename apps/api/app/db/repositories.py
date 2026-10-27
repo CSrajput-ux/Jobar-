@@ -154,6 +154,11 @@ class JobRepository:
         result = await self.session.execute(stmt)
         return result.scalar_one_or_none()
 
+    async def get_by_dedup_hash(self, dedup_hash: str) -> Optional[Job]:
+        stmt = select(Job).where(Job.dedup_hash == dedup_hash)
+        result = await self.session.execute(stmt)
+        return result.scalar_one_or_none()
+
     async def upsert(self, job_dict: Dict[str, Any]) -> Job:
         dedup_hash = job_dict.get("dedup_hash") or job_dict.get("dedupHash")
         stmt = select(Job).where(Job.dedup_hash == dedup_hash)
@@ -241,6 +246,11 @@ class ApplicationRepository:
         result = await self.session.execute(stmt)
         return result.scalar_one_or_none()
 
+    async def get_by_user_and_job(self, user_id: UUID, job_id: UUID) -> Optional[Application]:
+        stmt = select(Application).where(Application.user_id == user_id, Application.job_id == job_id)
+        result = await self.session.execute(stmt)
+        return result.scalar_one_or_none()
+
     async def create(
         self,
         user_id: UUID,
@@ -288,6 +298,7 @@ class ApplicationRepository:
         if app is None:
             return None
 
+        previous_status = app.status
         app.status = status
         if proof_url:
             app.proof_screenshot_url = proof_url
@@ -297,6 +308,8 @@ class ApplicationRepository:
             app.failure_reason = failure_reason
         if notes:
             app.notes = notes
+        if status == "APPROVED" and not app.approved_at:
+            app.approved_at = datetime.now(timezone.utc)
         if status == "APPLIED" and not app.applied_at:
             app.applied_at = datetime.now(timezone.utc)
         app.updated_at = datetime.now(timezone.utc)
@@ -304,7 +317,7 @@ class ApplicationRepository:
         event = ApplicationEvent(
             application_id=app.id,
             event_type=f"STATUS_CHANGED_TO_{status}",
-            metadata_json={"proof_url": proof_url, "failure_reason": failure_reason},
+            metadata_json={"proof_url": proof_url, "failure_reason": failure_reason, "previous_status": previous_status},
         )
         self.session.add(event)
         await self.session.flush()

@@ -227,10 +227,13 @@ Return strictly JSON:
 
         return {
             "score": score,
-            "matchedSkills": matched[:8] or ["Python", "FastAPI", "TypeScript", "PostgreSQL"],
+            "matchedSkills": matched[:8],
             "missingSkills": missing[:3],
             "redFlags": [] if score > 75 else ["Requires specific domain experience not strongly evidenced"],
-            "fitSummary": f"Strong alignment for {job.get('title')}. Matches core stack requirements with demonstrated senior systems experience.",
+            "fitSummary": (
+                f"Match analysis for {job.get('title')}: {len(matched)} resume skill(s) overlap with the posting."
+                if matched else f"No direct skill overlap was identified from the parsed resume for {job.get('title')}."
+            ),
             "seniorityAlignment": "ideal"
         }
 

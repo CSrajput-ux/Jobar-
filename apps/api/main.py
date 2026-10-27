@@ -11,7 +11,7 @@ from fastapi.responses import JSONResponse
 from app.core.config import settings
 from app.db.database import get_engine
 from app.db.models import Base
-from app.routers import auth, profile, jobs, matches, applications, outreach, inbox, calendar, audit
+from app.routers import auth, profile, jobs, matches, applications, outreach, inbox, calendar, audit, platforms
 from app.ingestion import router as ingestion_router
 from app.google import router as google_workspace_router
 
@@ -116,6 +116,7 @@ app.include_router(outreach.router, prefix=settings.API_V1_STR)
 app.include_router(inbox.router, prefix=settings.API_V1_STR)
 app.include_router(calendar.router, prefix=settings.API_V1_STR)
 app.include_router(audit.router, prefix=settings.API_V1_STR)
+app.include_router(platforms.router, prefix=settings.API_V1_STR)
 app.include_router(ingestion_router.router, prefix=settings.API_V1_STR)
 
 # Google Workspace Integration Routes

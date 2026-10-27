@@ -51,21 +51,7 @@ class RemotiveConnector:
                 return self._fallback_jobs()
 
     def _fallback_jobs(self) -> List[Dict[str, Any]]:
-        return [
-            {
-                "companyName": "GitLab",
-                "title": "Senior Backend Engineer, Distribution",
-                "location": "Remote (Worldwide)",
-                "workMode": "remote",
-                "descriptionText": "Build resilient CI/CD release architectures and packaging pipelines at GitLab.",
-                "requirementsText": "Go, Python, Docker, Kubernetes, Linux internals.",
-                "salaryRange": "$160,000 - $205,000",
-                "source": "remotive",
-                "externalUrl": "https://remotive.com/remote-jobs/software-dev/senior-backend-engineer-gitlab",
-                "dedupHash": hashlib.sha256(b"gitlab_sr_backend_dist").hexdigest(),
-                "atsType": "custom",
-                "postedAt": "2026-09-28T09:00:00Z"
-            }
-        ]
+        # Never manufacture a vacancy when the source cannot be reached.
+        return []
 
 remotive_connector = RemotiveConnector()

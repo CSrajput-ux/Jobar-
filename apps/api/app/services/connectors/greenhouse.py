@@ -51,22 +51,7 @@ class GreenhouseConnector:
                 return self._fallback_jobs(board_token)
 
     def _fallback_jobs(self, board_token: str) -> List[Dict[str, Any]]:
-        company = board_token.capitalize()
-        return [
-            {
-                "companyName": company,
-                "title": f"Staff Software Engineer, Platforms",
-                "location": "Remote (US)",
-                "workMode": "remote",
-                "descriptionText": f"Lead engineering systems and scale core infrastructure at {company}.",
-                "requirementsText": "Python, TypeScript, PostgreSQL, distributed systems.",
-                "salaryRange": "$175,000 - $215,000",
-                "source": "greenhouse_api",
-                "externalUrl": f"https://boards.greenhouse.io/{board_token}/jobs/5918239002",
-                "dedupHash": hashlib.sha256(f"{company}_staff_eng".encode()).hexdigest(),
-                "atsType": "greenhouse",
-                "postedAt": "2026-09-25T12:00:00Z"
-            }
-        ]
+        # Never manufacture a vacancy when the source cannot be reached.
+        return []
 
 greenhouse_connector = GreenhouseConnector()

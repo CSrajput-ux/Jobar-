@@ -51,22 +51,7 @@ class LeverConnector:
                 return self._fallback_jobs(board_token)
 
     def _fallback_jobs(self, board_token: str) -> List[Dict[str, Any]]:
-        company = board_token.capitalize()
-        return [
-            {
-                "companyName": company,
-                "title": "Principal Systems Engineer",
-                "location": "Remote",
-                "workMode": "remote",
-                "descriptionText": f"Scale distributed event streams and sync engine at {company}.",
-                "requirementsText": "Distributed systems, TypeScript, Redis, PostgreSQL.",
-                "salaryRange": "$185,000 - $230,000",
-                "source": "lever_api",
-                "externalUrl": f"https://jobs.lever.co/{board_token}/principal-systems",
-                "dedupHash": hashlib.sha256(f"{company}_principal_sys".encode()).hexdigest(),
-                "atsType": "lever",
-                "postedAt": "2026-09-26T14:30:00Z"
-            }
-        ]
+        # Never manufacture a vacancy when the source cannot be reached.
+        return []
 
 lever_connector = LeverConnector()

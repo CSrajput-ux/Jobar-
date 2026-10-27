@@ -31,7 +31,7 @@ export const ApplicationKanbanView: React.FC<ApplicationKanbanViewProps> = ({
   const [proofModalUrl, setProofModalUrl] = useState<string | null>(null);
 
   const [applications, setApplications] = useState(() => {
-    if (initialApplications && initialApplications.length > 0) {
+    if (initialApplications !== undefined) {
       return initialApplications.map(a => ({
         id: a.id,
         companyName: a.job?.companyName || "Company",
@@ -44,46 +44,13 @@ export const ApplicationKanbanView: React.FC<ApplicationKanbanViewProps> = ({
         salary: a.job?.salaryRange || "Competitive",
       }));
     }
-    return [
-      {
-        id: "10000000-0000-0000-0000-000000000003",
-        companyName: "Linear",
-        title: "Staff Infrastructure & Systems Engineer",
-        status: "SAVED",
-        atsType: "lever",
-        appliedAt: null,
-        proofScreenshotUrl: null,
-        notes: "High relevance to real-time sync systems.",
-        salary: "$180,000 - $220,000"
-      },
-      {
-        id: "10000000-0000-0000-0000-000000000001",
-        companyName: "Vercel",
-        title: "Senior Full-Stack Engineer, AI Platforms",
-        status: "QUEUED_FOR_APPROVAL",
-        atsType: "greenhouse",
-        appliedAt: null,
-        proofScreenshotUrl: null,
-        notes: "Tailored resume & screening questions prepared.",
-        salary: "$170,000 - $210,000"
-      },
-      {
-        id: "10000000-0000-0000-0000-000000000002",
-        companyName: "Supabase",
-        title: "Backend Engineer, Postgres & Vector Engine",
-        status: "APPLIED",
-        atsType: "greenhouse",
-        appliedAt: "2026-09-28T14:22:00Z",
-        proofScreenshotUrl: null,
-        notes: "Submitted via ATS connector. Awaiting recruiter review.",
-        salary: "$165,000 - $205,000"
-      }
-    ];
+    return [];
   });
 
   const stages = [
     { id: "SAVED", title: "Saved", count: applications.filter(a => a.status === "SAVED").length, border: "border-gray-500/30" },
     { id: "QUEUED_FOR_APPROVAL", title: "Approval Queue", count: applications.filter(a => a.status === "QUEUED_FOR_APPROVAL").length, border: "border-amber-500/40" },
+    { id: "APPROVED", title: "Approved", count: applications.filter(a => a.status === "APPROVED").length, border: "border-cyan-500/40" },
     { id: "APPLIED", title: "Applied", count: applications.filter(a => a.status === "APPLIED").length, border: "border-indigo-500/40" },
     { id: "INTERVIEW", title: "Interviews", count: applications.filter(a => a.status === "INTERVIEW" || a.status === "INTERVIEWING").length, border: "border-emerald-500/40" },
     { id: "OFFER", title: "Offers", count: applications.filter(a => a.status === "OFFER" || a.status === "OFFERED").length, border: "border-purple-500/40" },
@@ -168,8 +135,12 @@ export const ApplicationKanbanView: React.FC<ApplicationKanbanViewProps> = ({
                           onClick={() => onApprove(app.id)}
                           className="w-full py-1.5 bg-amber-600 hover:bg-amber-500 text-white rounded text-[11px] font-semibold flex items-center justify-center gap-1.5 transition-all"
                         >
-                          <CheckCircle2 className="w-3.5 h-3.5" /> Approve Submission
+                          <CheckCircle2 className="w-3.5 h-3.5" /> Approve for Submission
                         </button>
+                      ) : app.status === "APPROVED" ? (
+                        <div className="flex items-center gap-1 text-[11px] text-cyan-300">
+                          <Clock className="w-3.5 h-3.5" /> Awaiting supervised submission
+                        </div>
                       ) : app.status === "APPLIED" ? (
                         <div className="flex items-center justify-between w-full">
                           <span className="text-[11px] text-emerald-400 flex items-center gap-1 font-medium">

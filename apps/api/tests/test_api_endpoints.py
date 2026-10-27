@@ -1,4 +1,5 @@
 import pytest
+import uuid
 from fastapi.testclient import TestClient
 from main import app
 
@@ -14,7 +15,6 @@ def test_list_jobs_endpoint():
     assert res.status_code == 200
     data = res.json()
     assert isinstance(data, list)
-    assert len(data) >= 3
 
 def test_profile_endpoint():
     res = client.get("/api/v1/profile")
@@ -24,21 +24,33 @@ def test_profile_endpoint():
     assert "experience" in data
 
 def test_application_approval_flow():
-    # 1. Get applications
-    res = client.get("/api/v1/applications")
-    assert res.status_code == 200
-    apps = res.json()
-    assert len(apps) > 0
-    queued = next((a for a in apps if a["status"] == "QUEUED_FOR_APPROVAL"), None)
-    
-    if queued:
-        # 2. Approve application
-        app_id = queued["id"]
-        approve_res = client.post(f"/api/v1/applications/{app_id}/approve")
-        assert approve_res.status_code == 200
-        approved_data = approve_res.json()
-        assert approved_data["status"] == "APPLIED"
-        assert approved_data["proofScreenshotUrl"] is not None
+    job_res = client.post("/api/v1/jobs", json={
+        "companyName": "Test Company",
+        "title": "Platform Engineer",
+        "externalUrl": f"https://jobs.example.test/{uuid.uuid4()}",
+    })
+    assert job_res.status_code == 201
+    app_res = client.post("/api/v1/applications", json={
+        "jobId": job_res.json()["id"],
+        "status": "QUEUED_FOR_APPROVAL",
+    })
+    assert app_res.status_code == 201
+
+    approve_res = client.post(f"/api/v1/applications/{app_res.json()['id']}/approve")
+    assert approve_res.status_code == 200
+    approved_data = approve_res.json()
+    assert approved_data["status"] == "APPROVED"
+    assert approved_data["approvedAt"] is not None
+    assert approved_data["appliedAt"] is None
+    assert approved_data["proofScreenshotUrl"] is None
+
+
+def test_application_cannot_be_manually_marked_applied():
+    apps = client.get("/api/v1/applications").json()
+    approved = next((a for a in apps if a["status"] == "APPROVED"), None)
+    if approved:
+        res = client.patch(f"/api/v1/applications/{approved['id']}", json={"status": "APPLIED"})
+        assert res.status_code == 409
 
 def test_emergency_kill_switch():
     # Engage kill switch

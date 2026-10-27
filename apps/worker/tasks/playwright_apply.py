@@ -6,12 +6,16 @@ from typing import Dict, Any
 
 class PlaywrightApplyRunner:
     """
-    Playwright Browser Automation for ATS form submission (Greenhouse, Lever).
-    Operates in isolated contexts with randomized human delays and proof capture.
-    Strictly halts on CAPTCHA / Login walls.
+    Supervised Playwright helper for supported ATS forms (Greenhouse, Lever).
+    Live interaction is disabled by default and never treats a filled form as a
+    completed application. It strictly halts on CAPTCHA, login walls, and any
+    result that needs candidate review.
     """
-    def __init__(self, headless: bool = True):
+    def __init__(self, headless: bool = True, allow_live_browser: bool = False):
         self.headless = headless
+        # Live form interaction is opt-in.  A worker must not open an external
+        # application page merely because a queued task exists.
+        self.allow_live_browser = allow_live_browser
         self.screenshots_dir = os.path.join(os.getcwd(), "screenshots")
         os.makedirs(self.screenshots_dir, exist_ok=True)
 
@@ -23,9 +27,16 @@ class PlaywrightApplyRunner:
         resume_pdf_path: str = None
     ) -> Dict[str, Any]:
         """
-        Navigates to ATS form, fills candidate info, checks for CAPTCHAs,
-        and saves screenshot proof.
+        When explicitly enabled, opens an ATS form and fills available fields.
+        It returns NEEDS_ATTENTION for candidate review rather than submitting.
         """
+        if not self.allow_live_browser:
+            return {
+                "status": "NEEDS_ATTENTION",
+                "reason": "Live browser submission is disabled. Open the ATS and submit manually after review.",
+                "screenshotUrl": None,
+                "requiresManualAction": True,
+            }
         try:
             from playwright.async_api import async_playwright
         except ImportError:
@@ -72,15 +83,18 @@ class PlaywrightApplyRunner:
                 else:
                     await self._fill_generic_form(page, candidate_info)
 
-                # 3. Take Proof Screenshot
+                # Filling a form is not a submission.  Stop here for the
+                # candidate to review and manually submit; this also avoids
+                # bypassing site-specific terms, login, or CAPTCHA controls.
                 proof_path = os.path.join(self.screenshots_dir, f"proof_{application_id}.png")
                 await page.screenshot(path=proof_path, full_page=False)
 
                 await browser.close()
                 return {
-                    "status": "APPLIED",
-                    "submittedAt": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+                    "status": "NEEDS_ATTENTION",
+                    "reason": "Form was filled but not submitted. Review and submit it manually in the ATS.",
                     "screenshotUrl": f"/proofs/proof_{application_id}.png",
+                    "requiresManualAction": True,
                     "payload": {
                         "fullName": candidate_info.get("fullName"),
                         "email": candidate_info.get("email"),
@@ -172,14 +186,15 @@ class PlaywrightApplyRunner:
                 "requiresManualAction": True
             }
         return {
-            "status": "APPLIED",
-            "submittedAt": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+            "status": "NEEDS_ATTENTION",
+            "reason": "Browser automation is unavailable. Submit this application manually.",
             "screenshotUrl": f"/proofs/proof_{application_id}.png",
+            "requiresManualAction": True,
             "payload": {
                 "fullName": full_name,
                 "email": email,
                 "targetUrl": job_url,
-                "verified": True
+                "verified": False
             }
         }
 

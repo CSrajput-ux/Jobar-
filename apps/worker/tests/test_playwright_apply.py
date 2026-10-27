@@ -18,7 +18,7 @@ async def test_playwright_apply_flow():
         candidate_info=candidate_info
     )
 
-    assert result["status"] in ["APPLIED", "NEEDS_ATTENTION"]
+    assert result["status"] == "NEEDS_ATTENTION"
     assert "screenshotUrl" in result
     if result["status"] == "NEEDS_ATTENTION":
         assert "reason" in result

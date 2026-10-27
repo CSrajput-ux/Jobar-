@@ -35,44 +35,6 @@ async def list_threads(
     inbox_repo: InboxRepository = Depends(get_inbox_repo),
 ):
     threads = await inbox_repo.list_threads_by_user(current_user.id)
-    if not threads:
-        # Seed baseline threads for new user
-        seed_threads = [
-            {
-                "gmail_thread_id": f"thread_supabase_recruiter_{current_user.id.hex[:6]}",
-                "subject": "Invitation to Interview: Backend Engineer @ Supabase",
-                "from_address": "careers@supabase.com",
-                "snippet": f"Hi {current_user.full_name}, thanks for your application. The engineering team reviewed your background with pgvector and would love to schedule a technical intro...",
-                "classification": "INTERVIEW_INVITE",
-                "action_required": True,
-                "proposed_reply": "Hi, thank you for reaching out! I would love to connect. I am available this Thursday and Friday between 10am-4pm PT.",
-                "company_name": "Supabase",
-            },
-            {
-                "gmail_thread_id": f"thread_stripe_rejection_{current_user.id.hex[:6]}",
-                "subject": "Update regarding your application at Stripe",
-                "from_address": "talent@stripe.com",
-                "snippet": "Thank you for taking the time to speak with our team. While we were impressed by your background, we have decided to move forward with other candidates...",
-                "classification": "REJECTION",
-                "action_required": False,
-                "proposed_reply": None,
-                "company_name": "Stripe",
-            },
-        ]
-        for item in seed_threads:
-            await inbox_repo.upsert_thread(
-                user_id=current_user.id,
-                gmail_thread_id=item["gmail_thread_id"],
-                subject=item["subject"],
-                from_address=item["from_address"],
-                snippet=item["snippet"],
-                classification=item["classification"],
-                action_required=item["action_required"],
-                proposed_reply=item["proposed_reply"],
-                company_name=item["company_name"],
-            )
-        threads = await inbox_repo.list_threads_by_user(current_user.id)
-
     return [_format_thread(t) for t in threads]
 
 

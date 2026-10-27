@@ -20,12 +20,35 @@ router = APIRouter(prefix="/applications", tags=["Applications & Pipeline"])
 VALID_APPLICATION_STATUSES = {
     "SAVED",
     "QUEUED_FOR_APPROVAL",
+    "APPROVED",
     "READY_TO_SUBMIT",
+    "SUBMITTING",
     "APPLIED",
+    "NEEDS_ATTENTION",
+    "FAILED",
     "INTERVIEWING",
     "OFFERED",
     "REJECTED",
     "WITHDRAWN",
+}
+
+# A candidate's approval and an external ATS submission are deliberately
+# distinct events.  In particular, no regular API update may manufacture an
+# APPLIED state: that state is reserved for a worker which has verified the
+# provider's confirmation response and stored proof.
+ALLOWED_STATUS_TRANSITIONS = {
+    "SAVED": {"QUEUED_FOR_APPROVAL", "WITHDRAWN"},
+    "QUEUED_FOR_APPROVAL": {"SAVED", "APPROVED", "WITHDRAWN"},
+    "APPROVED": {"SUBMITTING", "NEEDS_ATTENTION", "WITHDRAWN"},
+    "READY_TO_SUBMIT": {"SUBMITTING", "NEEDS_ATTENTION", "WITHDRAWN"},
+    "SUBMITTING": {"APPLIED", "NEEDS_ATTENTION", "FAILED"},
+    "APPLIED": {"INTERVIEWING", "OFFERED", "REJECTED", "WITHDRAWN"},
+    "NEEDS_ATTENTION": {"SAVED", "QUEUED_FOR_APPROVAL", "APPROVED", "WITHDRAWN"},
+    "FAILED": {"SAVED", "QUEUED_FOR_APPROVAL", "APPROVED", "WITHDRAWN"},
+    "INTERVIEWING": {"OFFERED", "REJECTED", "WITHDRAWN"},
+    "OFFERED": {"WITHDRAWN"},
+    "REJECTED": set(),
+    "WITHDRAWN": set(),
 }
 
 
@@ -47,7 +70,8 @@ def _format_app_response(app, job=None) -> Dict[str, Any]:
         "userId": str(app.user_id),
         "jobId": str(app.job_id),
         "status": app.status,
-        "appliedAt": app.applied_at.isoformat() if app.applied_at else None,
+    "approvedAt": app.approved_at.isoformat() if app.approved_at else None,
+    "appliedAt": app.applied_at.isoformat() if app.applied_at else None,
         "proofScreenshotUrl": app.proof_screenshot_url,
         "submittedPayload": app.submitted_payload,
         "failureReason": app.failure_reason,
@@ -66,29 +90,6 @@ async def list_applications(
     job_repo: JobRepository = Depends(get_job_repo),
 ):
     apps = await app_repo.list_by_user(current_user.id, status=status)
-    if not apps and not status:
-        # Seed baseline applications for candidate pipeline
-        jobs = await job_repo.list_jobs(limit=2)
-        if not jobs:
-            seed_job = await job_repo.upsert({
-                "company_name": "Supabase",
-                "title": "Senior Infrastructure Engineer",
-                "location": "Remote",
-                "work_mode": "remote",
-                "description": "Building next-generation open source database infrastructure.",
-                "salary_range": "$160k - $210k",
-                "ats_type": "greenhouse",
-                "external_url": "https://boards.greenhouse.io/supabase/jobs/infra-01",
-                "external_id": "supabase-infra-01",
-            })
-            jobs = [seed_job]
-        created = await app_repo.create(
-            user_id=current_user.id,
-            job_id=jobs[0].id,
-            status="QUEUED_FOR_APPROVAL",
-            notes=f"Queued for candidate approval: {jobs[0].title} at {jobs[0].company_name}.",
-        )
-        apps = [created]
     results = []
     for a in apps:
         job = await job_repo.get_by_id(a.job_id)
@@ -114,10 +115,10 @@ async def create_application(
         raise HTTPException(status_code=404, detail="Referenced job not found.")
 
     status_val = payload.status or "QUEUED_FOR_APPROVAL"
-    if status_val not in VALID_APPLICATION_STATUSES:
+    if status_val not in {"SAVED", "QUEUED_FOR_APPROVAL"}:
         raise HTTPException(
             status_code=400,
-            detail=f"Invalid application status. Allowed: {', '.join(sorted(VALID_APPLICATION_STATUSES))}",
+            detail="New applications must start as SAVED or QUEUED_FOR_APPROVAL.",
         )
 
     app = await app_repo.create(
@@ -166,8 +167,8 @@ async def approve_application(
     audit_repo: AuditRepository = Depends(get_audit_repo),
 ):
     """
-    Candidate approval transition. Moves application to verified submission queue
-    or confirmed submission status without fabricating external proof.
+    Record the candidate's explicit approval.  This does not submit anything to
+    an ATS and must not be presented as proof of an application.
     """
     try:
         parsed_app_id = UUID(app_id)
@@ -177,24 +178,16 @@ async def approve_application(
     app = await app_repo.get_by_id(current_user.id, parsed_app_id)
     if not app:
         raise HTTPException(status_code=404, detail="Application not found or unauthorized.")
+    if "APPROVED" not in ALLOWED_STATUS_TRANSITIONS.get(app.status, set()):
+        raise HTTPException(status_code=409, detail=f"Cannot approve an application in {app.status} status.")
 
     job = await job_repo.get_by_id(app.job_id)
     company_name = job.company_name if job else "Company"
 
-    # Set approved status
-    submitted_payload = {
-        "candidate": current_user.full_name,
-        "email": str(current_user.email),
-        "approvedAt": datetime.now(timezone.utc).isoformat(),
-        "ats": job.ats_type if job else "direct",
-    }
-
     updated_app = await app_repo.update_status(
         user_id=current_user.id,
         app_id=parsed_app_id,
-        status="APPLIED",
-        proof_url=f"/proofs/proof_{app.id}.png",
-        payload=submitted_payload,
+        status="APPROVED",
         notes=f"Approved by candidate for submission to {company_name}.",
     )
 
@@ -203,7 +196,7 @@ async def approve_application(
         action="APPLICATION_APPROVED",
         resource_type="application",
         resource_id=str(app.id),
-        details={"company": company_name, "candidate": current_user.full_name},
+        details={"company": company_name, "candidate": current_user.full_name, "submission": "not_started"},
     )
 
     return _format_app_response(updated_app, job)
@@ -233,10 +226,19 @@ async def update_application(
             detail=f"Invalid status '{updates.status}'. Allowed: {', '.join(sorted(VALID_APPLICATION_STATUSES))}",
         )
 
+    next_status = updates.status or app.status
+    if next_status != app.status and next_status not in ALLOWED_STATUS_TRANSITIONS.get(app.status, set()):
+        raise HTTPException(status_code=409, detail=f"Cannot transition application from {app.status} to {next_status}.")
+    if next_status in {"SUBMITTING", "APPLIED"}:
+        raise HTTPException(
+            status_code=409,
+            detail=f"{next_status} can only be set by a verified submission worker.",
+        )
+
     updated_app = await app_repo.update_status(
         user_id=current_user.id,
         app_id=parsed_app_id,
-        status=updates.status or app.status,
+        status=next_status,
         notes=updates.notes or app.notes,
         failure_reason=updates.failureReason,
     )

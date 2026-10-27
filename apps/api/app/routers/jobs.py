@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import uuid
+from urllib.parse import urlparse
 from typing import List, Optional, Dict, Any
 from uuid import UUID
 from fastapi import APIRouter, Query, HTTPException, Depends, status
@@ -56,56 +57,6 @@ async def list_jobs(
         offset=offset,
     )
 
-    # Seed baseline verified postings into database if empty
-    if not jobs and offset == 0 and not query and not location and not workMode and not atsType:
-        seed_jobs = [
-            {
-                "id": uuid.UUID("e0000000-0000-0000-0000-000000000001"),
-                "companyName": "Linear",
-                "title": "Staff Infrastructure & Systems Engineer",
-                "location": "Remote (Worldwide)",
-                "workMode": "remote",
-                "descriptionText": "Scale distributed sync protocols, real-time WebSocket state coordination, and backend microservices at Linear.",
-                "requirementsText": "8+ years backend systems experience. Deep mastery of TypeScript/Node, distributed state synchronization, PostgreSQL, Redis.",
-                "salaryRange": "$180,000 - $220,000 + Equity",
-                "source": "lever_api",
-                "externalUrl": "https://jobs.lever.co/linear/staff-infrastructure-systems",
-                "dedupHash": "hash_linear_staff_infra_2026",
-                "atsType": "lever",
-            },
-            {
-                "id": uuid.UUID("e0000000-0000-0000-0000-000000000002"),
-                "companyName": "Vercel",
-                "title": "Senior Full-Stack Engineer, AI Platforms",
-                "location": "Remote (United States)",
-                "workMode": "remote",
-                "descriptionText": "Build developer tools and frontend infrastructure for next-generation generative AI web applications using Next.js App Router.",
-                "requirementsText": "5+ years with React, Next.js, TypeScript, modern CSS. Experience integrating LLM APIs and streaming responses.",
-                "salaryRange": "$170,000 - $210,000 + Equity",
-                "source": "greenhouse_api",
-                "externalUrl": "https://boards.greenhouse.io/vercel/jobs/5918239002",
-                "dedupHash": "hash_vercel_fullstack_ai_2026",
-                "atsType": "greenhouse",
-            },
-            {
-                "id": uuid.UUID("e0000000-0000-0000-0000-000000000003"),
-                "companyName": "Supabase",
-                "title": "Backend Engineer, Postgres & Vector Engine",
-                "location": "Remote",
-                "workMode": "remote",
-                "descriptionText": "Help scale Supabase pgvector and real-time database replication services for millions of developers worldwide.",
-                "requirementsText": "Deep expertise in PostgreSQL internals, pgvector, distributed storage, Python or Go, and multi-tenant security.",
-                "salaryRange": "$165,000 - $205,000 + Equity",
-                "source": "greenhouse_api",
-                "externalUrl": "https://boards.greenhouse.io/supabase/jobs/4829103002",
-                "dedupHash": "hash_supabase_postgres_vector_2026",
-                "atsType": "greenhouse",
-            },
-        ]
-        for item in seed_jobs:
-            await job_repo.upsert(item)
-        jobs = await job_repo.list_jobs(limit=limit, offset=offset)
-
     return [_to_job_response(j) for j in jobs]
 
 
@@ -118,9 +69,14 @@ async def create_or_clip_job(
     Ingests a job posting from the Chrome browser extension or manual submission.
     Deduplicates via stable hash of external URL or company + title.
     """
-    company_name = payload.get("companyName") or payload.get("company_name", "Company")
-    title = payload.get("title", "Role")
-    external_url = payload.get("externalUrl") or payload.get("external_url") or f"https://jobs.example.com/{uuid.uuid4()}"
+    company_name = payload.get("companyName") or payload.get("company_name")
+    title = payload.get("title")
+    external_url = payload.get("externalUrl") or payload.get("external_url")
+    if not company_name or not title or not external_url:
+        raise HTTPException(status_code=422, detail="companyName, title, and externalUrl are required.")
+    parsed_url = urlparse(external_url)
+    if parsed_url.scheme not in {"http", "https"} or not parsed_url.netloc:
+        raise HTTPException(status_code=422, detail="externalUrl must be an absolute HTTP(S) URL.")
     
     dedup_hash = payload.get("dedupHash") or payload.get("dedup_hash")
     if not dedup_hash:
@@ -193,9 +149,10 @@ async def sync_jobs(job_repo: JobRepository = Depends(get_job_repo)):
 
     new_count = 0
     for raw in fetched_jobs:
-        existing_job = await job_repo.upsert(raw)
-        if existing_job:
+        dedup_hash = raw.get("dedup_hash") or raw.get("dedupHash")
+        if dedup_hash and not await job_repo.get_by_dedup_hash(dedup_hash):
             new_count += 1
+        await job_repo.upsert(raw)
 
     all_current = await job_repo.list_jobs(limit=1000)
     return {

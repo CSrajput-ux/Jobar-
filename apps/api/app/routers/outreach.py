@@ -52,22 +52,6 @@ def _format_email(e) -> Dict[str, Any]:
 @router.get("/contacts", response_model=List[ContactResponse])
 async def list_contacts(outreach_repo: OutreachRepository = Depends(get_outreach_repo)):
     contacts = await outreach_repo.list_contacts()
-    if not contacts:
-        # Seed baseline verified contacts
-        seed_data = [
-            ("Sarah Jenkins", "sarah.j@vercel.com", "Vercel", "Senior Technical Recruiter (Engineering)", "https://linkedin.com/in/sarah-jenkins-tech"),
-            ("Marcus Vance", "marcus@linear.app", "Linear", "Head of Engineering Talent", "https://linkedin.com/in/marcus-vance-linear"),
-            ("Elena Rostova", "elena.r@supabase.com", "Supabase", "Lead Tech Recruiter", "https://linkedin.com/in/elena-rostova"),
-        ]
-        for name, email, company, role, linkedin in seed_data:
-            await outreach_repo.get_or_create_contact(
-                full_name=name,
-                email=email,
-                company_name=company,
-                role_title=role,
-                linkedin_url=linkedin,
-            )
-        contacts = await outreach_repo.list_contacts()
     return [_format_contact(c) for c in contacts]
 
 

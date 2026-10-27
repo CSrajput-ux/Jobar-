@@ -1,19 +1,77 @@
 from __future__ import annotations
 
 import io
-from typing import Dict, Any, Optional
+import zipfile
+from pathlib import Path
+from xml.etree import ElementTree
+from typing import Dict, Any, Optional, List
 from fastapi import APIRouter, UploadFile, File, Form, HTTPException, Depends, status
 
 from app.schemas.profile import StructuredProfileSchema, PreferencesSchema, CommonQASchema
 from app.services.ai_service import ai_service
-from app.core.dependencies import get_current_user, get_profile_repo
+from app.core.dependencies import (
+    get_current_user,
+    get_profile_repo,
+    get_job_repo,
+    get_match_repo,
+    get_app_repo,
+    get_audit_repo,
+)
 from app.core.auth import UserRecord
-from app.db.repositories import ProfileRepository
+from app.db.repositories import (
+    ProfileRepository,
+    JobRepository,
+    MatchRepository,
+    ApplicationRepository,
+    AuditRepository,
+)
 
 router = APIRouter(prefix="/profile", tags=["Profile & Onboarding"])
 
 MAX_CV_FILE_SIZE = 5 * 1024 * 1024  # 5MB limit
 ALLOWED_CV_EXTENSIONS = {".pdf", ".txt", ".md", ".json", ".docx"}
+
+
+def _profile_response(profile) -> Dict[str, Any]:
+    return {
+        "headline": profile.headline or "Software Engineer",
+        "summary": profile.summary or "",
+        "phone": profile.phone,
+        "location": profile.location or "Remote",
+        "linkedinUrl": profile.linkedin_url,
+        "githubUrl": profile.github_url,
+        "skills": profile.skills or {"technical": [], "frameworks": [], "tools": [], "languages": []},
+        "experience": profile.experience or [],
+        "education": profile.education or [],
+        "projects": profile.projects or [],
+    }
+
+
+def _extract_resume_text(content: bytes, filename: str) -> str:
+    """Extract text locally; no resume content is sent anywhere except the configured AI service."""
+    suffix = Path(filename).suffix.lower()
+    if suffix in {".txt", ".md", ".json"}:
+        return content.decode("utf-8", errors="ignore").strip()
+    if suffix == ".docx":
+        try:
+            with zipfile.ZipFile(io.BytesIO(content)) as document:
+                xml = document.read("word/document.xml")
+            root = ElementTree.fromstring(xml)
+            text = "\n".join(node.text for node in root.iter() if node.tag.endswith("}t") and node.text)
+            return text.strip()
+        except (KeyError, ValueError, zipfile.BadZipFile, ElementTree.ParseError) as exc:
+            raise HTTPException(status_code=400, detail="Unable to read this DOCX resume.") from exc
+    if suffix == ".pdf":
+        try:
+            from pypdf import PdfReader
+            reader = PdfReader(io.BytesIO(content))
+            return "\n".join(page.extract_text() or "" for page in reader.pages).strip()
+        except Exception as exc:
+            raise HTTPException(
+                status_code=400,
+                detail="Unable to extract text from this PDF. Upload a text-based PDF or DOCX file.",
+            ) from exc
+    raise HTTPException(status_code=400, detail="Unsupported resume format.")
 
 
 @router.get("", response_model=StructuredProfileSchema)
@@ -26,18 +84,7 @@ async def get_profile(
         user_name=current_user.full_name,
         user_email=str(current_user.email),
     )
-    return {
-        "headline": profile.headline or "Software Engineer",
-        "summary": profile.summary or f"Profile for {current_user.full_name}.",
-        "phone": profile.phone,
-        "location": profile.location or "Remote",
-        "linkedinUrl": profile.linkedin_url,
-        "githubUrl": profile.github_url,
-        "skills": profile.skills or {"technical": [], "frameworks": [], "tools": [], "languages": []},
-        "experience": profile.experience or [],
-        "education": profile.education or [],
-        "projects": profile.projects or [],
-    }
+    return _profile_response(profile)
 
 
 @router.post("/upload-cv", response_model=StructuredProfileSchema)
@@ -63,13 +110,7 @@ async def upload_cv(
                 detail=f"Uploaded file exceeds maximum size limit of {MAX_CV_FILE_SIZE // (1024 * 1024)}MB.",
             )
 
-        try:
-            text_content = content_bytes.decode("utf-8", errors="ignore")
-        except Exception as exc:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Failed to read CV content: {exc}",
-            )
+        text_content = _extract_resume_text(content_bytes, filename)
 
     if not text_content:
         raise HTTPException(
@@ -94,17 +135,88 @@ async def upload_cv(
             "projects": parsed.get("projects", []),
         },
     )
+    return _profile_response(updated)
+
+
+@router.post("/analyze-and-queue", response_model=dict)
+async def analyze_resume_and_queue_matches(
+    queue_for_approval: bool = True,
+    limit: int = 25,
+    current_user: UserRecord = Depends(get_current_user),
+    profile_repo: ProfileRepository = Depends(get_profile_repo),
+    job_repo: JobRepository = Depends(get_job_repo),
+    match_repo: MatchRepository = Depends(get_match_repo),
+    app_repo: ApplicationRepository = Depends(get_app_repo),
+    audit_repo: AuditRepository = Depends(get_audit_repo),
+):
+    """Score saved jobs against the candidate's parsed resume.
+
+    High-scoring jobs are placed in the candidate's approval queue only. This
+    endpoint never submits an external application.
+    """
+    limit = max(1, min(limit, 100))
+    profile = await profile_repo.get_or_create(current_user.id, current_user.full_name, str(current_user.email))
+    skills = profile.skills or {}
+    if not any(skills.get(key) for key in ("technical", "frameworks", "tools", "languages")):
+        raise HTTPException(status_code=409, detail="Upload a resume with identifiable skills before searching for matches.")
+
+    preferences = await profile_repo.get_preferences(current_user.id)
+    jobs = await job_repo.list_jobs(limit=limit)
+    candidate = {
+        "headline": profile.headline,
+        "summary": profile.summary,
+        "skills": skills,
+        "experience": profile.experience or [],
+    }
+    blacklist = {name.lower().strip() for name in (preferences.blacklisted_companies or [])}
+    recommendations: List[Dict[str, Any]] = []
+    queued_count = 0
+
+    for job in jobs:
+        if job.company_name.lower().strip() in blacklist:
+            continue
+        reasoning = await ai_service.evaluate_job_match(candidate, {
+            "title": job.title,
+            "companyName": job.company_name,
+            "location": job.location,
+            "workMode": job.work_mode,
+            "descriptionText": job.description_text,
+            "requirementsText": job.requirements_text or "",
+        })
+        score = max(0, min(100, int(reasoning.get("score", 0))))
+        await match_repo.upsert(current_user.id, job.id, score, reasoning)
+        queued = False
+        if queue_for_approval and score >= preferences.min_match_score:
+            # create() is idempotent for a user/job pair, so repeated analysis
+            # cannot duplicate an application queue entry.
+            existing = await app_repo.get_by_user_and_job(current_user.id, job.id)
+            if existing is None:
+                await app_repo.create(
+                    user_id=current_user.id,
+                    job_id=job.id,
+                    status="QUEUED_FOR_APPROVAL",
+                    notes="Resume match found; review materials before approving submission.",
+                )
+                queued_count += 1
+                queued = True
+        recommendations.append({
+            "jobId": str(job.id), "companyName": job.company_name, "title": job.title,
+            "externalUrl": job.external_url, "score": score, "reasoning": reasoning, "queued": queued,
+        })
+
+    recommendations.sort(key=lambda item: item["score"], reverse=True)
+    await audit_repo.log(
+        user_id=current_user.id,
+        action="RESUME_ANALYZED_FOR_JOB_MATCHES",
+        resource_type="profile",
+        resource_id=str(profile.id),
+        details={"jobs_scored": len(recommendations), "applications_queued": queued_count},
+    )
     return {
-        "headline": updated.headline,
-        "summary": updated.summary or "",
-        "phone": updated.phone,
-        "location": updated.location,
-        "linkedinUrl": updated.linkedin_url,
-        "githubUrl": updated.github_url,
-        "skills": updated.skills,
-        "experience": updated.experience,
-        "education": updated.education,
-        "projects": updated.projects,
+        "profile": _profile_response(profile),
+        "recommendations": recommendations,
+        "queuedForApproval": queued_count,
+        "message": "Jobs were scored from the uploaded resume. No application was submitted automatically.",
     }
 
 

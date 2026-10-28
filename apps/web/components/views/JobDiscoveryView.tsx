@@ -572,7 +572,7 @@ export const JobDiscoveryView: React.FC<JobDiscoveryViewProps> = ({
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-gray-400">
             <div>
               <p className="text-gray-300 font-semibold">
-                Click <strong>"Open Live Platform"</strong> on any portal to log in. JobPilot captures and saves the active session in your local encrypted vault so the Autonomous Bot can auto-apply seamlessly.
+                Click <strong>&ldquo;Open Live Platform&rdquo;</strong> on any portal to log in. JobPilot captures and saves the active session in your local encrypted vault so the Autonomous Bot can auto-apply seamlessly.
               </p>
             </div>
             <div className="flex items-center gap-2">

@@ -87,8 +87,20 @@ def test_multi_user_application_and_audit_isolation():
         updated_at=now,
     )
 
-    # 1. As User A: get applications
+    # 1. As User A: create and get applications
     app.dependency_overrides[get_current_user] = lambda: user_a
+    job_res = client.post("/api/v1/jobs", json={
+        "companyName": "User A Company",
+        "title": "Backend Architect",
+        "externalUrl": f"https://jobs.example.test/usera-{uuid4()}",
+    })
+    assert job_res.status_code == 201
+    create_app_res = client.post("/api/v1/applications", json={
+        "jobId": job_res.json()["id"],
+        "status": "QUEUED_FOR_APPROVAL",
+    })
+    assert create_app_res.status_code == 201
+
     res_a = client.get("/api/v1/applications")
     assert res_a.status_code == 200
     apps_a = res_a.json()

@@ -9,7 +9,7 @@
   ],
   "scripts": {
     "dev:web": "npm run dev --workspace=apps/web",
-    "dev:api": "npm run dev --workspace=apps/api",
+    "dev:api": "python -m uvicorn main:app --app-dir apps/api --reload --port 8000",
     "dev": "concurrently \"npm:dev:*\"",
     "build": "npm run build --workspaces --if-present",
     "test": "npm run test --workspaces --if-present",

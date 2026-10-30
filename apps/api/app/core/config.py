@@ -27,6 +27,12 @@ class Settings(BaseSettings):
     GLOBAL_DAILY_APPLY_CAP: int = 20
     CORS_ORIGINS: list[str] = ["http://localhost:3000", "http://127.0.0.1:3000"]
 
+    # High Concurrency Database & Connection Pool Settings (50,000 RPS Target)
+    DB_POOL_SIZE: int = 50
+    DB_MAX_OVERFLOW: int = 50
+    DB_POOL_RECYCLE: int = 1800
+    DB_POOL_TIMEOUT: int = 30
+
     @model_validator(mode="after")
     def validate_required_settings(self):
         if self.ENVIRONMENT == "production":

@@ -5,7 +5,7 @@ import uuid
 from urllib.parse import urlparse
 from typing import List, Optional, Dict, Any
 from uuid import UUID
-from fastapi import APIRouter, Query, HTTPException, Depends, status
+from fastapi import APIRouter, Query, HTTPException, Depends, status, Response
 
 from app.schemas.job import JobResponse
 from app.services.connectors.greenhouse import greenhouse_connector
@@ -40,6 +40,7 @@ def _to_job_response(job: Job) -> Dict[str, Any]:
 
 @router.get("", response_model=List[JobResponse])
 async def list_jobs(
+    response: Response,
     query: Optional[str] = Query(None),
     location: Optional[str] = Query(None),
     workMode: Optional[str] = Query(None),
@@ -57,6 +58,7 @@ async def list_jobs(
         offset=offset,
     )
 
+    response.headers["Cache-Control"] = "public, max-age=10, stale-while-revalidate=30"
     return [_to_job_response(j) for j in jobs]
 
 

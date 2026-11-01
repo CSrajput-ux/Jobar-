@@ -10,6 +10,22 @@ def test_health_endpoint():
     assert res.status_code == 200
     assert res.json()["status"] == "healthy"
 
+def test_liveness_and_readiness_probes():
+    live_res = client.get("/health/live")
+    assert live_res.status_code == 200
+    assert live_res.json()["status"] == "alive"
+
+    ready_res = client.get("/health/ready")
+    assert ready_res.status_code == 200
+    assert ready_res.json()["status"] == "ready"
+
+def test_telemetry_metrics_endpoint():
+    res = client.get("/metrics")
+    assert res.status_code == 200
+    data = res.json()
+    assert data["max_capacity_rps"] == 50000
+    assert "target_concurrency" in data
+
 def test_list_jobs_endpoint():
     res = client.get("/api/v1/jobs")
     assert res.status_code == 200

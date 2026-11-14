@@ -1,6 +1,6 @@
 {
   "name": "jobpilot",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "private": true,
   "description": "JobPilot - AI-Powered Autonomous Job Search, Application & Outreach Platform",
   "workspaces": [
@@ -13,7 +13,9 @@
     "dev": "concurrently \"npm:dev:*\"",
     "build": "npm run build --workspaces --if-present",
     "test": "npm run test --workspaces --if-present",
-    "lint": "npm run lint --workspaces --if-present"
+    "lint": "npm run lint --workspaces --if-present",
+    "benchmark": "python scripts/benchmark_100k.py",
+    "deploy:prod": "powershell -ExecutionPolicy Bypass -File scripts/deploy.ps1"
   },
   "devDependencies": {
     "concurrently": "^8.2.2"

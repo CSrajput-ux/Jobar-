@@ -9,12 +9,12 @@
       "logo": "wellfound",
       "category": "Startups & Tech",
       "isConnected": true,
-      "accountEmail": "alex.chen.dev@example.com",
-      "sessionSavedAt": "2026-10-27T10:00:00Z",
+      "accountEmail": "test.user@example.com",
+      "sessionSavedAt": "2026-11-21T15:53:25.853098+00:00",
       "autoApplyEnabled": true,
       "credentialsStored": true,
-      "appliedCount": 19,
-      "lastSyncStatus": "Active Session Verified",
+      "appliedCount": 23,
+      "lastSyncStatus": "Session Connected & Verified",
       "featured": true
     },
     {
@@ -155,9 +155,9 @@
       "remote",
       "hybrid"
     ],
-    "minMatchScore": 85,
-    "dailyApplyCap": 20,
-    "maxApplicationsPerHour": 5,
+    "minMatchScore": 90,
+    "dailyApplyCap": 25,
+    "maxApplicationsPerHour": 6,
     "autoTailorResume": true,
     "autoGenerateCoverLetter": true,
     "antiBotHumanPacing": true,
@@ -171,6 +171,83 @@
     ]
   },
   "logs": [
+    {
+      "id": "log-cdd6b5",
+      "timestamp": "2026-11-21T15:53:25.895229+00:00",
+      "platform": "Wellfound (AngelList)",
+      "level": "SUCCESS",
+      "message": "[Autonomous Bot] Tailored resume & auto-applied to 'Staff Full Stack Engineer - API Network' at Postman (96% Match). Confirmation verified."
+    },
+    {
+      "id": "log-9644ee",
+      "timestamp": "2026-11-21T15:53:25.853098+00:00",
+      "platform": "Wellfound",
+      "level": "SUCCESS",
+      "message": "Successfully authenticated & saved active session for test.user@example.com. Platform ready for automated applications."
+    },
+    {
+      "id": "log-27d3cd",
+      "timestamp": "2026-11-21T15:53:25.797564+00:00",
+      "platform": "Auto-Pilot Core",
+      "level": "INFO",
+      "message": "Auto-Apply parameters updated. Auto-Pilot status: PAUSED (Daily Cap: 25 applications)."
+    },
+    {
+      "id": "log-1215bf",
+      "timestamp": "2026-11-21T15:52:23.289571+00:00",
+      "platform": "Wellfound (AngelList)",
+      "level": "SUCCESS",
+      "message": "[Autonomous Bot] Tailored resume & auto-applied to 'Staff Full Stack Engineer - API Network' at Postman (96% Match). Confirmation verified."
+    },
+    {
+      "id": "log-e0c426",
+      "timestamp": "2026-11-21T15:52:23.115323+00:00",
+      "platform": "Wellfound",
+      "level": "SUCCESS",
+      "message": "Successfully authenticated & saved active session for test.user@example.com. Platform ready for automated applications."
+    },
+    {
+      "id": "log-c29bf2",
+      "timestamp": "2026-11-21T15:52:22.878317+00:00",
+      "platform": "Auto-Pilot Core",
+      "level": "INFO",
+      "message": "Auto-Apply parameters updated. Auto-Pilot status: PAUSED (Daily Cap: 25 applications)."
+    },
+    {
+      "id": "log-f1b4b4",
+      "timestamp": "2026-11-21T15:51:42.110573+00:00",
+      "platform": "Wellfound (AngelList)",
+      "level": "SUCCESS",
+      "message": "[Autonomous Bot] Tailored resume & auto-applied to 'Staff Full Stack Engineer - API Network' at Postman (96% Match). Confirmation verified."
+    },
+    {
+      "id": "log-e8429f",
+      "timestamp": "2026-11-21T15:51:41.981444+00:00",
+      "platform": "Wellfound",
+      "level": "SUCCESS",
+      "message": "Successfully authenticated & saved active session for test.user@example.com. Platform ready for automated applications."
+    },
+    {
+      "id": "log-5bd418",
+      "timestamp": "2026-11-21T15:51:38.222631+00:00",
+      "platform": "Auto-Pilot Core",
+      "level": "INFO",
+      "message": "Auto-Apply parameters updated. Auto-Pilot status: PAUSED (Daily Cap: 25 applications)."
+    },
+    {
+      "id": "log-68e478",
+      "timestamp": "2026-11-21T15:50:45.116417+00:00",
+      "platform": "Wellfound (AngelList)",
+      "level": "SUCCESS",
+      "message": "[Autonomous Bot] Tailored resume & auto-applied to 'Staff Full Stack Engineer - API Network' at Postman (96% Match). Confirmation verified."
+    },
+    {
+      "id": "log-1b6fd7",
+      "timestamp": "2026-11-21T15:50:45.026876+00:00",
+      "platform": "Wellfound",
+      "level": "SUCCESS",
+      "message": "Successfully authenticated & saved active session for test.user@example.com. Platform ready for automated applications."
+    },
     {
       "id": "log-2de122",
       "timestamp": "2026-10-27T17:02:18.813953+00:00",
